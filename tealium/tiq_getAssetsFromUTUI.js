@@ -101,11 +101,19 @@ var tiqHelper = {
    */
   getLabels: function (type, asset) {
     try {
-      var retval = asset.labels || "";
-      if (asset.imported) {
-        retval += (retval) ? "," + asset.imported : asset.imported;
+      var retval = [];
+
+      if (asset.labels) {
+        asset.labels.split(",").forEach(function (item) {
+          retval.push(utui.data.labels[item].name);
+        });
       }
-      return retval;
+
+      if (asset.imported) {
+        retval.push(asset.imported);
+      }
+      
+      return retval.join("|");
     } catch (err) {
       return "";
     }
