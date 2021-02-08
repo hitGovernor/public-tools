@@ -9,8 +9,10 @@ utag_data["ut.profile"] + " -- " + utag_data["ut.env"] + " -- " + utag_data["ut.
 // tiq toggle debug
 if (document.cookie.indexOf("utagdb=true") > -1) {
   document.cookie = "utagdb=false";
+  console.log("TiQ debug disabled");
 } else {
   document.cookie = "utagdb=true";
+  console.log("TiQ debug enabled");
 }
 
 
