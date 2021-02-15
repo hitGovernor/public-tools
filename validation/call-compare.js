@@ -6,8 +6,6 @@ var callCompare = {
    * @returns {object}
    */
   compare: function (left, right) {
-    var result = {};
-
     // start comparison with left object as source of truth
     for (var key in left) {
       // don't look at keys with no name
@@ -84,6 +82,18 @@ var callCompare = {
     }
 
     // return fully parsed object of key/value pairs
+    return retval;
+  },
+
+  mergeLeftRight: function (aryLeft, aryRight) {
+    var retval = [];
+    for (var i = 0, max = aryLeft.length; i < max; i++) {
+      retval.push({
+        left: aryLeft[i],
+        right: aryRight[i]
+      });
+    }
+
     return retval;
   }
 }
