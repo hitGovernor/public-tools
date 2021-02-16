@@ -53,6 +53,8 @@ var callCompare = {
    * @returns {object}
    */
   parseIt: function (url) {
+    url = url.replace(/\?$/,"");
+    
     var retval = {},
       urlSegment = url.split("?"),
       httpInfo = urlSegment[0].split("/");
