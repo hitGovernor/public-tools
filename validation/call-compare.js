@@ -32,11 +32,13 @@ var callCompare = {
 
     // anything left in the right object is right-only
     for (var key in right) {
-      if (!result.hasOwnProperty[key]) {
-        result[key] = {
-          leftVal: left[key],
-          rightVal: right[key],
-          result: "right-only"
+      if (key !== "") {
+        if (!result.hasOwnProperty[key]) {
+          result[key] = {
+            leftVal: left[key],
+            rightVal: right[key],
+            result: "right-only"
+          }
         }
       }
     }
