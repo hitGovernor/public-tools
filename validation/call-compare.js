@@ -6,6 +6,8 @@ var callCompare = {
    * @returns {object}
    */
   compare: function (left, right) {
+    var result = {};
+
     // start comparison with left object as source of truth
     for (var key in left) {
       // don't look at keys with no name
@@ -53,8 +55,8 @@ var callCompare = {
    * @returns {object}
    */
   parseIt: function (url) {
-    url = url.replace(/\?$/,"");
-    
+    url = url.replace(/\?$/, "");
+
     var retval = {},
       urlSegment = url.split("?"),
       httpInfo = urlSegment[0].split("/");
