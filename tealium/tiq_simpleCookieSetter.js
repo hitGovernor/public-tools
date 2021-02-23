@@ -2,7 +2,7 @@
  * sets the specified cookie
  * @param cName {string} name of the cookie to create
  * @param cVal {string} the value being stored in the cookie
- * @param expDays {number} specifies expiration date the specified number of days from todaty
+ * @param expDays {number} specifies expiration date the specified number of days from today
  */
 function setCookie(cName, cVal, expDays) {
   var domain = "example.com",
