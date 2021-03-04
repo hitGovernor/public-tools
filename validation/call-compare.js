@@ -55,8 +55,6 @@ var callCompare = {
    * @returns {object}
    */
   parseIt: function (url) {
-    url = url.replace(/\?$/, "");
-
     var retval = {},
       urlSegment = url.split("?"),
       httpInfo = urlSegment[0].split("/");
@@ -70,8 +68,10 @@ var callCompare = {
 
     // if no params after "?", assume all ";" delimiters (ie// DCM, Google Ads)
     if (urlSegment.length === 1) {
-      urlSegment[1] = httpInfo[httpInfo.length - 1].replace(/;/g, "&");
-      delete retval["http" + (httpInfo.length - 1)];
+      if(urlSegment[0].indexOf(";") > -1) {
+        urlSegment[1] = httpInfo[httpInfo.length - 1].replace(/;/g, "&");
+        delete retval["http" + (httpInfo.length - 1)];
+      }
     }
 
     // parse all parameters
@@ -94,6 +94,11 @@ var callCompare = {
   mergeLeftRight: function (aryLeft, aryRight) {
     var retval = [];
     for (var i = 0, max = aryLeft.length; i < max; i++) {
+
+      // clean up trailing characters
+      aryLeft[i] = aryLeft[i].replace(/[\/\?]$/, "");
+      aryRight[i] = aryRight[i].replace(/[\/\?]$/, "");
+
       retval.push({
         left: aryLeft[i],
         right: aryRight[i]
@@ -122,7 +127,10 @@ tests.push({
   left: "https://ad.doubleclick.net/ddm/activity/src=xxxxx1984865;type=abc123;cat=evocom00;u93=[CS]v1aaa111bbb222ccc333-zzz999yyy888xxx777[CE];u94=11111111222222223333333344444444;dc_rdid=%20;ord=1;num=920837467;u38=fb.1.1234567879741.987654321",
   right: "https://ad.doubleclick.net/ddm/activity/src=aaaaa1984865;type=abc123;cat=evocom00;u93=[CS]v1aaa111bbb222ccc333-zzz999yyy888xxx777[CE];u94=11111111222222223333333344444444;dc_rdid=%20;ord=1;num=920837467;u38=fb.1.1234567879741.987654321"
 });
-
+tests.push({
+  left: "https://www.example.com/something/a",
+  right: "https://www.example.com/something"
+});
 
 var output = [];
 for (var i = 0, max = tests.length; i < max; i++) {
