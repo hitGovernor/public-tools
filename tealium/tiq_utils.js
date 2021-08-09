@@ -8,12 +8,12 @@ utag_data["ut.profile"] + " -- " + utag_data["ut.env"] + " -- " + utag_data["ut.
 
 // tiq toggle debug
 var host = document.location.hostname.split('.').reverse();
-var root = temp[1] + '.' + temp[0];
+var root = host[1] + '.' + host[0];
 if (document.cookie.indexOf("utagdb=true") > -1) {
-  document.cookie = "utagdb=false;path=/;domain="+root;
+  document.cookie = "utagdb=false;path=/;domain=" + root;
   console.log("TiQ debug disabled");
 } else {
-  document.cookie = "utagdb=true;path=/;domain="+root;
+  document.cookie = "utagdb=true;path=/;domain=" + root;
   console.log("TiQ debug enabled");
 }
 
