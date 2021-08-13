@@ -1,9 +1,19 @@
+var plugin = "CartMgr";
+
+// define cart manager and set default/static values
+window[plugin] = {
+  tax: .1,
+  shipping: 8.00
+};
+
+// add support for browser events; default console logs the results, but can be 
+// modified to push to a data layer or any other requirement
 document.addEventListener("cart_mgr_notification", function (item) {
   console.log(item.detail);
 });
 
-// notify document that it's ok to start firing the event
-// window.CustomEvent polyfill from https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent#Polyfill
+// window.CustomEvent polyfill from:
+// https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent#Polyfill
 (function () {
   if (typeof window.CustomEvent === "function") return false;
 
@@ -20,14 +30,6 @@ document.addEventListener("cart_mgr_notification", function (item) {
   CustomEvent.prototype = window.Event.prototype;
   window.CustomEvent = CustomEvent;
 })();
-
-var plugin = "CartMgr";
-
-// define cart manager and set default/static values
-window[plugin] = {
-  tax: .1,
-  shipping: 8.00
-};
 
 window[plugin].notify = function (eventDetail) {
   var event = new CustomEvent("cart_mgr_notification", {
@@ -269,3 +271,6 @@ window[plugin].purchase = function (payload) {
   }
   return this.cart;
 }
+
+// auto-initialize the cart manager
+window[plugin].init();
