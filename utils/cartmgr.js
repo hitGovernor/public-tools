@@ -1,5 +1,41 @@
+document.addEventListener("cart_mgr_notification", function (item) {
+  console.log(item.detail);
+});
+
+// notify document that it's ok to start firing the event
+// window.CustomEvent polyfill from https://developer.mozilla.org/en-US/docs/Web/API/CustomEvent/CustomEvent#Polyfill
+(function () {
+  if (typeof window.CustomEvent === "function") return false;
+
+  function CustomEvent(event, params) {
+    params = params || {
+      bubbles: false,
+      cancelable: false,
+      detail: undefined
+    };
+    var evt = document.createEvent('CustomEvent');
+    evt.initCustomEvent(event, params.bubbles, params.cancelable, params.detail);
+    return evt;
+  }
+  CustomEvent.prototype = window.Event.prototype;
+  window.CustomEvent = CustomEvent;
+})();
+
 var plugin = "CartMgr";
-window[plugin] = {};
+
+// define cart manager and set default/static values
+window[plugin] = {
+  tax: .1,
+  shipping: 8.00
+};
+
+window[plugin].notify = function (eventDetail) {
+  var event = new CustomEvent("cart_mgr_notification", {
+    detail: eventDetail
+  });
+  document.dispatchEvent(event);
+}
+
 window[plugin].tools = {
   buildTransactionID: function (length) {
     var transID = '';
@@ -20,6 +56,12 @@ window[plugin].init = function (payload) {
   };
   this.transactions = {};
 
+  this.notify({
+    trigger: 'init',
+    payload: payload,
+    cart: this.cart
+  });
+
   if (payload && payload.callback) {
     payload.callback();
   }
@@ -28,9 +70,14 @@ window[plugin].init = function (payload) {
 window[plugin].empty = function (payload) {
   this.cart = {
     items: {},
-    status: 'emptied'
+    status: 'empty'
   };
-  // this.transactions = {};
+
+  this.notify({
+    trigger: 'empty',
+    payload: payload,
+    cart: this.cart
+  });
 
   if (payload && payload.callback) {
     payload.callback();
@@ -39,6 +86,12 @@ window[plugin].empty = function (payload) {
 
 window[plugin].open = function (payload) {
   this.cart.status = 'open';
+
+  this.notify({
+    trigger: 'open',
+    payload: payload,
+    cart: this.cart
+  });
 
   if (payload && payload.callback) {
     payload.callback();
@@ -52,6 +105,12 @@ window[plugin].getItemCount = function () {
     itemCount += this.cart.items[key].qty;
   }
 
+  this.notify({
+    trigger: 'getItemCount',
+    payload: {},
+    cart: this.cart
+  });
+
   return itemCount;
 }
 
@@ -62,24 +121,40 @@ window[plugin].getSubtotal = function () {
     subtotal = (Number(subtotal) + Number(this.cart.items[key].ttl));
   }
 
-  return Number(subtotal.toFixed(2))
+  subtotal = Number(subtotal.toFixed(2));
+
+  this.notify({
+    trigger: 'getSubtotal',
+    payload: {},
+    cart: this.cart
+  });
+
+  return subtotal;
 }
 
 window[plugin].getTotal = function () {
-  return Number((Number(this.cart.subtotal) + Number(this.cart.tax) + Number(this.cart.shipping)).toFixed(2));
+  var total = Number((Number(this.cart.subtotal) + Number(this.cart.tax) + Number(this.cart.shipping)).toFixed(2));
+
+  this.notify({
+    trigger: 'getTotal',
+    payload: {},
+    cart: this.cart
+  });
+
+  return total;
 }
 
 window[plugin].add = function (payload) {
   var sku = payload.sku || '';
   if (sku) {
-    if (this.cart.status === 'closed') {
+    if (this.cart.status === 'closed' || this.cart.status === 'empty') {
       this.open();
     }
 
     if (!this.cart.items[sku]) {
       var qty = Number(payload.qty).toFixed(2),
         amt = Number(payload.amt).toFixed(2),
-        ttl = qty * amt;
+        ttl = Number(qty * amt).toFixed(2);
 
       this.cart.items[sku] = {
         sku: sku,
@@ -101,6 +176,12 @@ window[plugin].add = function (payload) {
         category: payload.category
       }
     }
+
+    this.notify({
+      trigger: 'add',
+      payload: payload,
+      cart: this.cart
+    });
 
     if (payload.callback) {
       payload.callback();
@@ -129,18 +210,31 @@ window[plugin].remove = function (payload) {
       }
     }
 
+    this.notify({
+      trigger: 'remove',
+      payload: payload,
+      cart: this.cart
+    });
+
     if (payload && payload.callback) {
       payload.callback();
     }
+
     return this.cart;
   }
 }
 
 window[plugin].checkout = function (payload) {
   this.cart.subtotal = this.getSubtotal();
-  this.cart.shipping = Number(8.99.toFixed(2));
-  this.cart.tax = Number((this.cart.subtotal * .1).toFixed(2));
+  this.cart.shipping = Number(window[plugin].shipping.toFixed(2));
+  this.cart.tax = Number((this.cart.subtotal * window[plugin].tax).toFixed(2));
   this.cart.total = this.getTotal();
+
+  this.notify({
+    trigger: 'checkout',
+    payload: payload,
+    cart: this.cart
+  });
 }
 
 window[plugin].purchase = function (payload) {
@@ -151,6 +245,7 @@ window[plugin].purchase = function (payload) {
   this.cart.status = 'complete';
   this.transactions.lastTransaction = transID;
   this.transactions[transID] = this.cart;
+  this.transactions[transID].transID = transID;
   this.transactions[transID].subtotal = Number(this.cart.subtotal);
   this.transactions[transID].total = Number(this.cart.total);
 
@@ -161,6 +256,13 @@ window[plugin].purchase = function (payload) {
     items: {},
     status: 'closed'
   }
+
+  this.notify({
+    trigger: 'purchase',
+    payload: payload,
+    transaction: this.transactions[transID],
+    cart: this.cart
+  });
 
   if (payload && payload.callback) {
     payload.callback();
