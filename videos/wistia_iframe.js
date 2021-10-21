@@ -1,3 +1,4 @@
+// wistia api documentation: https://wistia.com/support/developers/player-api#with-iframe-embeds
 function resetProgressOnComplete(videoId) {
   window.videos[videoId].status = {
     step_play: false,
