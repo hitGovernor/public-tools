@@ -35,6 +35,19 @@ const getExtVars = {
   },
 
   /**
+   * keeps 'data' key in init() output clean (deduplicates values, etc)
+   * @param {array} ary 
+   * @param {string} key 
+   * @returns {array}
+   */
+  addToDataList: function(ary, key) {
+    if(!ary.includes(key)) {
+      ary.push(key);
+    }
+    return ary;
+  },
+
+  /**
    * evaulates specified extension types, returning a list of data layer variables found in each
    * @returns {string}
    */
@@ -46,15 +59,20 @@ const getExtVars = {
       for (var key in extension) {
         if (extension.extType === "Set Data Values") {
           if (/_set$/.test(key)) {
-            data.push(extension[key]);
+            this.addToDataList(data, extension[key]);
           }
         } else if (extension.extType === "Lookup Table") {
           if (key === "var" || key === "varlookup") {
-            data.push(extension[key]);
+            this.addToDataList(data, extension[key]);
           }
         } else if (extension.extType === "Join Data Values") {
           if (/_set$/.test(key) || key === "var") {
-            data.push(extension[key]);
+            this.addToDataList(data, extension[key]);
+          }
+        } else if (extension.extType === "Persist Data Value") {
+          if (/_source$/.test(key) || key === "var" || key === "settovar") {
+            // data.push(extension[key]);
+            this.addToDataList(data, extension[key]);
           }
         }
       }
