@@ -93,6 +93,37 @@ var tiqHelper = {
     }
   },
 
+  // for tag info:
+  // .map === mapped variables, object, return "type|key" (concat)
+  getMappedVarsForTags: function (type, asset) {
+    var output = [];
+    if (type === "tag") {
+      for (var mapped in asset.map) {
+        output.push(asset.map[mapped].type + "|" + asset.map[mapped].key);
+      }
+    }
+
+    return output.join("~");
+  },
+
+  // for tag info:
+  // .loadrule === load rules, comma delimited
+  getLoadRulesForTags: function (type, asset) {
+    if (type === "tag") {
+      return asset.loadrule.replaceAll(",", "|");
+    } else {
+      return "";
+    }
+  },
+
+  getExtensionScope: function (type, asset) {
+    if (type === "extension") {
+      return asset.scope.replaceAll(",", "|");
+    } else {
+      return "";
+    }
+  },
+
   /**
    * returns any labels assigned to the asset
    * @param {string} type - asset type (tag, extension, loadrule, datalayer)
@@ -112,7 +143,7 @@ var tiqHelper = {
       if (asset.imported) {
         retval.push(asset.imported);
       }
-      
+
       return retval.join("|");
     } catch (err) {
       return "";
@@ -195,6 +226,9 @@ var tiqHelper = {
         tmp.type = tiqHelper.getType(item, assets[key]);
         tmp.status = tiqHelper.getStatus(item, assets[key]);
         tmp.labels = tiqHelper.getLabels(item, assets[key]);
+        tmp.tagMappedVars = tiqHelper.getMappedVarsForTags(item, assets[key]);
+        tmp.tagLoadRules = tiqHelper.getLoadRulesForTags(item, assets[key]);
+        tmp.extensionScope = tiqHelper.getExtensionScope(item, assets[key]);
         tmp.lastModified = tiqHelper.getLastModified(item, assets[key]);
 
         retval.push(tmp);
