@@ -40,8 +40,8 @@ const getExtVars = {
    * @param {string} key 
    * @returns {array}
    */
-  addToDataList: function(ary, key) {
-    if(!ary.includes(key)) {
+  addToDataList: function (ary, key) {
+    if (!ary.includes(key)) {
       ary.push(key);
     }
     return ary;
@@ -57,6 +57,12 @@ const getExtVars = {
 
       var data = [];
       for (var key in extension) {
+        // use for all extension types
+        if (/_source$/.test(key)) {
+          this.addToDataList(data, extension[key]);
+        }
+
+        // use for specific extension types
         if (extension.extType === "Set Data Values") {
           if (/_set$/.test(key)) {
             this.addToDataList(data, extension[key]);
@@ -70,8 +76,7 @@ const getExtVars = {
             this.addToDataList(data, extension[key]);
           }
         } else if (extension.extType === "Persist Data Value") {
-          if (/_source$/.test(key) || key === "var" || key === "settovar") {
-            // data.push(extension[key]);
+          if (key === "var" || key === "settovar") {
             this.addToDataList(data, extension[key]);
           }
         }
@@ -82,7 +87,8 @@ const getExtVars = {
         type: extension.extType,
         title: extension.title,
         status: extension.status,
-        data: data
+        scope: extension.scope.replaceAll(",","|"),
+        data: data.join("|")
       });
     }
 
