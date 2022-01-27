@@ -93,13 +93,62 @@ var tiqHelper = {
     }
   },
 
+  /**
+   * keeps 'data' key in init() output clean (deduplicates values, etc)
+   * @param {array} ary 
+   * @param {string} key 
+   * @returns {array}
+   */
+  addToDataList: function (ary, key) {
+    if (!ary.includes(key)) {
+      ary.push(key);
+    }
+    return ary;
+  },
+
   // for tag info:
   // .map === mapped variables, object, return "type|key" (concat)
-  getMappedVarsForTags: function (type, asset) {
+  getMappedVars: function (type, asset) {
     var output = [];
     if (type === "tag") {
       for (var mapped in asset.map) {
         output.push(asset.map[mapped].type + "|" + asset.map[mapped].key);
+      }
+    } else if (type === "extension") {
+      for (var key in asset) {
+        // use for all extension types
+        if (/_source$/.test(key)) {
+          this.addToDataList(output, asset[key]);
+        }
+
+        // use for specific extension types
+        if (asset.extType === "Set Data Values") {
+          if (/_set$/.test(key)) {
+            this.addToDataList(output, asset[key]);
+          }
+        } else if (asset.extType === "Lookup Table") {
+          if (key === "var" || key === "varlookup") {
+            this.addToDataList(output, asset[key]);
+          }
+        } else if (asset.extType === "Join Data Values") {
+          if (/_set$/.test(key) || key === "var") {
+            this.addToDataList(output, asset[key]);
+          }
+        } else if (asset.extType === "Persist Data Value") {
+          if (key === "var" || key === "settovar") {
+            this.addToDataList(output, asset[key]);
+          }
+        }
+      }
+    } else if (type === "loadrule") {
+      for (var key in asset) {
+        if (typeof asset[key] === "object") {
+          for (var subkey in asset[key]) {
+            if (/^input_/.test(subkey)) {
+              this.addToDataList(output, asset[key][subkey]);
+            }
+          }
+        }
       }
     }
 
@@ -226,7 +275,7 @@ var tiqHelper = {
         tmp.type = tiqHelper.getType(item, assets[key]);
         tmp.status = tiqHelper.getStatus(item, assets[key]);
         tmp.labels = tiqHelper.getLabels(item, assets[key]);
-        tmp.tagMappedVars = tiqHelper.getMappedVarsForTags(item, assets[key]);
+        tmp.mappedVars = tiqHelper.getMappedVars(item, assets[key]);
         tmp.tagLoadRules = tiqHelper.getLoadRulesForTags(item, assets[key]);
         tmp.extensionScope = tiqHelper.getExtensionScope(item, assets[key]);
         tmp.lastModified = tiqHelper.getLastModified(item, assets[key]);
