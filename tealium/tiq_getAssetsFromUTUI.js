@@ -106,8 +106,13 @@ var tiqHelper = {
     return ary;
   },
 
-  // for tag info:
-  // .map === mapped variables, object, return "type|key" (concat)
+  /**
+   * returns a list of all data layer variables that have been mapped
+   * to the specified asset (tag, extension, load rule)
+   * @param {string} type - specifies asset type (tag, extension, loadrule)
+   * @param {object} asset = the asset being evaluated (tag, extension, loadrule)
+   * @returns {string}
+   */
   getMappedVars: function (type, asset) {
     var output = [];
     if (type === "tag") {
@@ -155,8 +160,12 @@ var tiqHelper = {
     return output.join("~");
   },
 
-  // for tag info:
-  // .loadrule === load rules, comma delimited
+  /**
+   * returns a pipe-delimited list of load rules (UID) associated with each tag
+   * @param {string} type - specifies asset type (tag, extension, loadrule)
+   * @param {object} asset = the asset being evaluated (tag, extension, loadrule)
+   * @returns {string} - eg// "2", "15|29"
+   */
   getLoadRulesForTags: function (type, asset) {
     if (type === "tag") {
       return asset.loadrule.replaceAll(",", "|");
@@ -165,6 +174,13 @@ var tiqHelper = {
     }
   },
 
+  /**
+   * returns the scope of each extension; if scoped to multiple tags, the result
+   * will be a pipe-delimited list of tag UIDs
+   * @param {string} type - specifies asset type (tag, extension, loadrule)
+   * @param {object} asset = the asset being evaluated (tag, extension, loadrule)
+   * @returns {string} - eg// "global", "domready", "2", "15|29"
+   */
   getExtensionScope: function (type, asset) {
     if (type === "extension") {
       return asset.scope.replaceAll(",", "|");
