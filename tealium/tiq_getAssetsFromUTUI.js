@@ -73,7 +73,8 @@ var tiqHelper = {
    */
   getPublishRevisions: function (type, asset) {
     try {
-      return Object.keys(asset.publish_revisions.svr_save_timestamps).sort().join("|")
+      // return Object.keys(asset.publish_revisions.svr_save_timestamps).sort().join("|")
+      return Object.keys(asset.publish_revisions.svr_save_timestamps).sort();
     } catch (err) {
       return "";
     }
@@ -117,7 +118,7 @@ var tiqHelper = {
     var output = [];
     if (type === "tag") {
       for (var mapped in asset.map) {
-        output.push(asset.map[mapped].type + "|" + asset.map[mapped].key);
+        output.push(asset.map[mapped].type + "." + asset.map[mapped].key);
       }
     } else if (type === "extension") {
       for (var key in asset) {
@@ -157,7 +158,8 @@ var tiqHelper = {
       }
     }
 
-    return output.join("~");
+    // return output.join("|");
+    return output;
   },
 
   /**
@@ -168,9 +170,11 @@ var tiqHelper = {
    */
   getLoadRulesForTags: function (type, asset) {
     if (type === "tag") {
-      return asset.loadrule.replaceAll(",", "|");
+      // return asset.loadrule.replaceAll(",", "|");
+      return asset.loadrule.split(",");
     } else {
-      return "";
+      // return "";
+      return [];
     }
   },
 
@@ -183,9 +187,11 @@ var tiqHelper = {
    */
   getExtensionScope: function (type, asset) {
     if (type === "extension") {
-      return asset.scope.replaceAll(",", "|");
+      // return asset.scope.replaceAll(",", "|");
+      return asset.scope.split(",");
     } else {
-      return "";
+      // return "";
+      return [];
     }
   },
 
@@ -209,9 +215,11 @@ var tiqHelper = {
         retval.push(asset.imported);
       }
 
-      return retval.join("|");
+      // return retval.join("|");
+      return retval;
     } catch (err) {
-      return "";
+      // return "";
+      return [];
     }
   },
 
