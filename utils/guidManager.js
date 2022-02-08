@@ -1,7 +1,7 @@
 var guidManager = {
   config: {
     UID_COOKIE_NAME: "evo_uid",
-    COOKIE_DOMAIN: "evolytics.com"
+    COOKIE_DOMAIN: "example.com"
   },
 
   getCookie: function (c_name) {
