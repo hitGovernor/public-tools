@@ -7,7 +7,7 @@ var tiqHelper = {
    */
   getId: function (type, asset) {
     try {
-      return asset._id || "";
+      return asset._id || asset.id || "";
     } catch (err) {
       return "";
     }
