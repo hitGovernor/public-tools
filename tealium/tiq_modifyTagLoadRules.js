@@ -1,19 +1,17 @@
-/**
- * adds the specified load rule (by uid) to ALL tags
- * TODO: update to add 1 or more load rule to specific tags
- * TODO: update to remove specified load rule(s) from specified tags
- *
- * DONE: update to add multiple load rules
- * DONE: update to only add/remove load rule(s) to/from ACTIVE (enabled) tags
- * DONE: update to remove specified load rule(s) from all tags
- */
-
 function logger(msg, do_log) {
   if (!!do_log) {
     console.log(msg);
   };
 }
 
+/**
+ * adds or removes load rules from tags
+ * @param {string} payload
+ * @param {Boolean=} payload.active_only - only modify active tags if set to true
+ * @param {Array} payload.loadrules - load rules to add or remove
+ * @param {String=} payload.operator - any|all (and|or conditional for multiple load rules, no change made if omitted);
+ * @param {String=} payload.action - add|remove (default is to add if not specified);
+ */
 function modifyLoadRules(payload) {
   let modify_active_only = payload.active_only || false;
   let modify_loadrules = payload.loadrules || [];
