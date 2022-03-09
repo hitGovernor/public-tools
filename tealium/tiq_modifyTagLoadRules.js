@@ -31,9 +31,9 @@ function modifyLoadRules(payload) {
     let tag_uid = utui.data.manage[Object.keys(utui.data.manage)[i]].id;
     let do_modify = true;
 
+    // if tags to modify are specified, only stick around for those in the array, otherwise, cancel
     if (modify_tags.length > 0 && !modify_tags.includes(tag_uid)) {
       logger("Tag " + tag_uid + " is not in the list to update", do_log);
-      // if tags to modify are specify, only stick around for those in the array, otherwise, cancel
       continue;
     }
 
@@ -65,7 +65,7 @@ function modifyLoadRules(payload) {
             }
             logger("Removing load rule " + item + " from tag " + tag_uid, do_log);
           } else {
-            logger("Load rule " + item + " does not exist for tag " + tag_uid + " and will not be removed", do_log);
+            logger("Load rule " + item + " does not exist for tag " + tag_uid, do_log);
           }
         }
       });
@@ -79,6 +79,7 @@ function modifyLoadRules(payload) {
   }
 }
 
+// sample usage:
 modifyLoadRules({
   action: "add", // optional, string, add|remove (default to add if not specified);
   loadrules: ['30'], // required, array, load rules to add or remove
