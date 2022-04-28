@@ -42,6 +42,7 @@ var tiqHelper = {
         retval = asset.type;
       } else if (type === "tag") {
         retval = asset.tag_name;
+        retval += (asset.config_tagtype) ? " - " + asset.config_tagtype : "";
       } else if (type === "extension") {
         retval = asset.extType;
       }
