@@ -5,9 +5,9 @@ let trackVideo = function (payload) {
   console.log({
     "video_event": payload.video_event || "",
     "video_title": payload.video_title || "",
-    "video_current_time": payload.video_current_time || "",
-    "video_duration": payload.video_duration || "",
-    "video_percent": payload.video_percent || "",
+    "video_current_time": payload.video_current_time || 0,
+    "video_duration": payload.video_duration || 0,
+    "video_percent": payload.video_percent || 0,
     "video_provider": payload.video_provider || "",
     "video_url": payload.video_url || ""
   });
