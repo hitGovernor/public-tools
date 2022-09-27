@@ -37,21 +37,13 @@ function add(accumulator, a) {
   return (Number(accumulator) + Number(a)).toFixed(2);
 }
 
-// add background shading when mousing over a row
-// AND
 // monitor each input for change; update row totals when a change occurs
+// AND
+// add/remove background shading when mousing over/from a row
 let rows = document.querySelectorAll("table.customTable tbody tr");
 rows.forEach(function (row) {
   let input_values = [];
   let total = row.querySelector("[id*='timesheetConsultantTotal']");
-
-  row.addEventListener("mouseover", function () {
-    row.setAttribute("style", "background-color: #c8c8c8");
-  });
-
-  row.addEventListener("mouseout", function () {
-    row.setAttribute("style", "background-color: ");
-  });
 
   // monitor each input for change; update row totals when a change occurs
   row.querySelectorAll("input").forEach(function (input, idx) {
@@ -65,5 +57,14 @@ rows.forEach(function (row) {
       // sum all hours in row array; display total in "total" column
       total.innerText = input_values.reduce(add, 0);
     });
+    total.innerText = input_values.reduce(add, 0);
+  });
+
+  row.addEventListener("mouseover", function () {
+    row.setAttribute("style", "background-color: #c8c8c8");
+  });
+
+  row.addEventListener("mouseout", function () {
+    row.setAttribute("style", "background-color: ");
   });
 });
