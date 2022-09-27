@@ -32,14 +32,38 @@ states.forEach(function (item) {
   item.value = "MO";
 });
 
+// returns the sum of an array of numbers (called in .reduce())
+function add(accumulator, a) {
+  return (+accumulator + +a).toFixed(2);
+}
+
 // add background shading when mousing over a row
+// AND
+// monitor each input for change; update row totals when a change occurs
 let rows = document.querySelectorAll("table.customTable tbody tr");
 rows.forEach(function (row) {
+  let input_values = [];
+  let total = row.querySelector("[id*='timesheetConsultantTotal']");
+
   row.addEventListener("mouseover", function () {
     row.setAttribute("style", "background-color: #c8c8c8");
   });
 
   row.addEventListener("mouseout", function () {
     row.setAttribute("style", "background-color: ");
+  });
+
+  // monitor each input for change; update row totals when a change occurs
+  row.querySelectorAll("input").forEach(function (input, idx) {
+    // build array of hours for each row
+    input_values[idx] = input.value;
+
+    input.addEventListener("change", function () {
+      // update array with changed hours
+      input_values[idx] = input.value;
+
+      // sum all hours in row array; display total in "total" column
+      total.innerText = input_values.reduce(add, 0);
+    });
   });
 });
