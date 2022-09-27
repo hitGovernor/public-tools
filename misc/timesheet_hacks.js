@@ -56,8 +56,13 @@ rows.forEach(function (row) {
 
       // sum all hours in row array; display total in "total" column
       total.innerText = input_values.reduce(add, 0);
+      // add "*" indicator if hours were entered in saturday or sunday columns
+      total.innerText += (Number(input_values[5]) > 0 || Number(input_values[5]) > 0) ? "*" : "";
     });
+    // sum all hours in row array; display total in "total" column
     total.innerText = input_values.reduce(add, 0);
+    // add "*" indicator if hours were entered in saturday or sunday columns
+    total.innerText += (Number(input_values[5]) > 0 || Number(input_values[5]) > 0) ? "*" : "";
   });
 
   row.addEventListener("mouseover", function () {
