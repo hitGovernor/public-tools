@@ -34,7 +34,7 @@ states.forEach(function (item) {
 
 // returns the sum of an array of numbers (called in .reduce())
 function add(accumulator, a) {
-  return (+accumulator + +a).toFixed(2);
+  return (Number(accumulator) + Number(a)).toFixed(2);
 }
 
 // add background shading when mousing over a row
