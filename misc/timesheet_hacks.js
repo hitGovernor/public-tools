@@ -41,30 +41,37 @@ function add(accumulator, a) {
 // AND
 // add/remove background shading when mousing over/from a row
 let rows = document.querySelectorAll("table.customTable tbody tr");
-rows.forEach(function (row) {
+let col_inputs = [];
+rows.forEach(function (row, row_index) {
   let input_values = [];
-  let total = row.querySelector("[id*='timesheetConsultantTotal']");
+  let row_total = row.querySelector("[id*='timesheetConsultantTotal']");
+  let col_total_labels = row.querySelectorAll("[id*='timesheetOneDayTotal']");
 
   // monitor each input for change; update row totals when a change occurs
-  row.querySelectorAll("input").forEach(function (input, idx) {
+  row.querySelectorAll("input").forEach(function (input, input_index) {
+    // build array of hours for each column
+    col_inputs[input_index] = col_inputs[input_index] || [];
+    col_inputs[input_index].push(input.value);
+    
     // build array of hours for each row
-    input_values[idx] = input.value;
+    input_values[input_index] = input.value;
 
     input.addEventListener("change", function () {
-      // update array with changed hours
-      input_values[idx] = input.value;
+      // update arrays with changed hours
+      col_inputs[input_index][row_index] = input.value; // column values
+      input_values[input_index] = input.value; // row values
 
       // sum all hours in row array; display total in "total" column
-      total.innerText = input_values.reduce(add, 0);
-      // add "*" indicator if hours were entered in saturday or sunday columns
-      total.innerText += (Number(input_values[5]) > 0 || Number(input_values[5]) > 0) ? "*" : "";
-    });
-    // sum all hours in row array; display total in "total" column
-    total.innerText = input_values.reduce(add, 0);
-    // add "*" indicator if hours were entered in saturday or sunday columns
-    total.innerText += (Number(input_values[5]) > 0 || Number(input_values[5]) > 0) ? "*" : "";
-  });
+      row_total.innerText = input_values.reduce(add, 0);
+      row_total.innerText += (Number(input_values[5]) > 0 || Number(input_values[5]) > 0) ? "*" : "";
 
+      // update column total
+      let col_total = col_inputs[input_index].reduce(add, 0);
+      document.querySelector("[id*=':" + input_index + ":timesheetOneDayTotal']").innerText = col_total;
+    });
+    row_total.innerText = input_values.reduce(add, 0) + ((Number(input_values[5]) > 0 || Number(input_values[5]) > 0) ? "*" : "");
+  });
+  
   row.addEventListener("mouseover", function () {
     row.setAttribute("style", "background-color: #c8c8c8");
   });
