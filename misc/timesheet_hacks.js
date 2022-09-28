@@ -45,14 +45,13 @@ let col_inputs = [];
 rows.forEach(function (row, row_index) {
   let input_values = [];
   let row_total = row.querySelector("[id*='timesheetConsultantTotal']");
-  let col_total_labels = row.querySelectorAll("[id*='timesheetOneDayTotal']");
 
   // monitor each input for change; update row totals when a change occurs
   row.querySelectorAll("input").forEach(function (input, input_index) {
     // build array of hours for each column
     col_inputs[input_index] = col_inputs[input_index] || [];
     col_inputs[input_index].push(input.value);
-    
+
     // build array of hours for each row
     input_values[input_index] = input.value;
 
@@ -68,10 +67,17 @@ rows.forEach(function (row, row_index) {
       // update column total
       let col_total = col_inputs[input_index].reduce(add, 0);
       document.querySelector("[id*=':" + input_index + ":timesheetOneDayTotal']").innerText = col_total;
+
+      // update timesheet total
+      let timesheet_total = 0;
+      document.querySelectorAll("[id*=':hoursForConsultant']").forEach(function (item) {
+        timesheet_total += Number(item.value);
+      });
+      document.querySelector("[id*='timesheetTotalHours']").innerText = timesheet_total.toFixed(2);
     });
     row_total.innerText = input_values.reduce(add, 0) + ((Number(input_values[5]) > 0 || Number(input_values[5]) > 0) ? "*" : "");
   });
-  
+
   row.addEventListener("mouseover", function () {
     row.setAttribute("style", "background-color: #c8c8c8");
   });
