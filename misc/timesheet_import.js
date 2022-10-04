@@ -40,7 +40,7 @@ rows.forEach(function (row, row_index) {
 
     // update row totals
     row_total.innerText = row_values.reduce(add, 0);
-    row_total.innerText += (Number(row_values[5]) > 0 || Number(row_values[5]) > 0) ? "*" : "";
+    row_total.innerText += (Number(row_values[5]) > 0 || Number(row_values[6]) > 0) ? "*" : "";
 
     // update column totals
     let col_total = col_inputs[input_index].reduce(add, 0);
