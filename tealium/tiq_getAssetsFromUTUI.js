@@ -1,4 +1,4 @@
-var tiqHelper = {
+let tiqHelper = {
   /**
    * returns the asset's ID
    * @param {string} type - asset type (tag, extension, loadrule, datalayer)
@@ -22,7 +22,8 @@ var tiqHelper = {
    */
   getName: function (type, asset) {
     try {
-      var retval = (type === "datalayer") ? asset.name : asset.title;
+      let retval = (type === "datalayer") ? asset.name : asset.title;
+      retval = retval.replace(/[,\t]/g, " ");
       return retval;
     } catch (err) {
       return "";
@@ -37,7 +38,7 @@ var tiqHelper = {
    */
   getType: function (type, asset) {
     try {
-      var retval = "";
+      let retval = "";
       if (type === "datalayer") {
         retval = asset.type;
       } else if (type === "tag") {
@@ -74,8 +75,8 @@ var tiqHelper = {
    */
   getPublishRevisions: function (type, asset) {
     try {
-      // return Object.keys(asset.publish_revisions.svr_save_timestamps).sort().join("|")
-      return Object.keys(asset.publish_revisions.svr_save_timestamps).sort();
+      return Object.keys(asset.publish_revisions.svr_save_timestamps).sort().join("|")
+      // return Object.keys(asset.publish_revisions.svr_save_timestamps).sort();
     } catch (err) {
       return "";
     }
@@ -116,13 +117,13 @@ var tiqHelper = {
    * @returns {string}
    */
   getMappedVars: function (type, asset) {
-    var output = [];
+    let output = [];
     if (type === "tag") {
-      for (var mapped in asset.map) {
+      for (let mapped in asset.map) {
         output.push(asset.map[mapped].type + "." + asset.map[mapped].key);
       }
     } else if (type === "extension") {
-      for (var key in asset) {
+      for (let key in asset) {
         // use for all extension types
         if (/_source$/.test(key)) {
           this.addToDataList(output, asset[key]);
@@ -148,9 +149,9 @@ var tiqHelper = {
         }
       }
     } else if (type === "loadrule") {
-      for (var key in asset) {
+      for (let key in asset) {
         if (typeof asset[key] === "object") {
-          for (var subkey in asset[key]) {
+          for (let subkey in asset[key]) {
             if (/^input_/.test(subkey)) {
               this.addToDataList(output, asset[key][subkey]);
             }
@@ -159,8 +160,8 @@ var tiqHelper = {
       }
     }
 
-    // return output.join("|");
-    return output;
+    return output.join("|");
+    // return output;
   },
 
   /**
@@ -171,11 +172,11 @@ var tiqHelper = {
    */
   getLoadRulesForTags: function (type, asset) {
     if (type === "tag") {
-      // return asset.loadrule.replaceAll(",", "|");
-      return asset.loadrule.split(",");
+      return asset.loadrule.replaceAll(",", "|");
+      // return asset.loadrule.split(",");
     } else {
-      // return "";
-      return [];
+      return "";
+      // return [];
     }
   },
 
@@ -188,23 +189,23 @@ var tiqHelper = {
    */
   getExtensionScope: function (type, asset) {
     if (type === "extension") {
-      // return asset.scope.replaceAll(",", "|");
-      return asset.scope.split(",");
+      return asset.scope.replaceAll(",", "|");
+      // return asset.scope.split(",");
     } else {
-      // return "";
-      return [];
+      return "";
+      // return [];
     }
   },
 
   /**
    * returns any labels assigned to the asset
    * @param {string} type - asset type (tag, extension, loadrule, datalayer)
-   * @param {object} asset - the asset being evaluate
+   * @param {object} asset - the asset being evaluated
    * @returns {string} - eg// "label-1"
    */
   getLabels: function (type, asset) {
     try {
-      var retval = [];
+      let retval = [];
 
       if (asset.labels) {
         asset.labels.split(",").forEach(function (item) {
@@ -216,11 +217,24 @@ var tiqHelper = {
         retval.push(asset.imported);
       }
 
-      // return retval.join("|");
-      return retval;
+      return retval.join("|");
+      // return retval;
     } catch (err) {
-      // return "";
-      return [];
+      return "";
+      // return [];
+    }
+  },
+
+  /**
+   * returns the library name if asset comes from a library
+   * @param {object} asset - the asset being evaluated
+   * @returns {string}
+   */
+  getParentLibrary: function(asset) {
+    try {
+      return asset.settings.profileid;
+    } catch(err) {
+      return "";
     }
   },
 
@@ -232,21 +246,21 @@ var tiqHelper = {
    * @example var allAssets=tiqHelper.getAllAssets(); tiqHelper.convertToCSV(allAssets);
    */
   convertToCSV: function (assets) {
-    var allBody = [],
+    let allBody = [],
       headers = [];
 
     // build the csv header row based on keys in first asset
-    for (var key in assets[0]) {
+    for (let key in assets[0]) {
       headers.push(key);
     }
     headers = headers.join(",") + "\n";
 
     // loop throug all assets to build the individual rows
-    for (var item in assets) {
-      var tmp = assets[item],
+    for (let item in assets) {
+      let tmp = assets[item],
         tmpArray = [];
 
-      for (var key in tmp) {
+      for (let key in tmp) {
         tmpArray.push(tmp[key]);
       }
 
@@ -263,7 +277,7 @@ var tiqHelper = {
    * @example tiqHelper.getAllAssets();
    */
   getAllAssets: function () {
-    var retval = this.getAssetsByType("tag", "extension", "loadrule", "datalayer");
+    let retval = this.getAssetsByType("tag", "extension", "loadrule", "datalayer");
     return retval;
   },
 
@@ -277,11 +291,13 @@ var tiqHelper = {
    * // returns all assets of type "tag", "extension", and "loadrule"
    */
   getAssetsByType: function () {
-    var tagsToGet = Array.from(arguments),
-      retval = [];
+    let ACCOUNT = document.getElementById("profile_legend_account").innerText;
+    let PROFILE = document.getElementById("profile_legend_profile").innerText;
+    let tagsToGet = Array.from(arguments);
+    let retval = [];
 
     // specifies the js object to evaluate for the asset type
-    var assetSources = {
+    let assetSources = {
       tag: utui.data.manage,
       extension: utui.data.customizations,
       loadrule: utui.data.loadrules,
@@ -289,10 +305,13 @@ var tiqHelper = {
     };
 
     tagsToGet.forEach(function (item) {
-      var assets = assetSources[item];
+      let assets = assetSources[item];
 
-      for (var key in assets) {
-        var tmp = {};
+      for (let key in assets) {
+        let tmp = {};
+        tmp.account = ACCOUNT;
+        tmp.profile = PROFILE;
+        tmp.parentLibrary = tiqHelper.getParentLibrary(assets[key]);
         tmp.assetType = item;
         tmp.id = tiqHelper.getId(item, assets[key]);
         tmp.name = tiqHelper.getName(item, assets[key]);
@@ -313,10 +332,10 @@ var tiqHelper = {
   }
 };
 
-var myTiQAssets = tiqHelper.getAllAssets();
+let myTiQAssets = tiqHelper.getAllAssets();
 
 // asks the user how they want the output; only 'table' and 'csv' are accepted, all other values do nothing
-var userInput = prompt("Sepcify your preferred format:\n\n* table: Displays assets using console.table()\n* csv: Displays assets as a comma-delimited string\n\nNote: Make sure you are in TiQ, with the Data Layer tab selected.", "table", "csv");
+let userInput = prompt("Sepcify your preferred format:\n\n* table: Displays assets using console.table()\n* csv: Displays assets as a comma-delimited string\n\nNote: Make sure you are in TiQ, with the Data Layer tab selected.", "table", "csv");
 if (/^csv$/i.test(userInput)) {
   console.log(tiqHelper.convertToCSV(myTiQAssets));
 } else if (/^table$/i.test(userInput)) {
