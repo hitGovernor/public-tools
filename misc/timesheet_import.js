@@ -9,6 +9,12 @@ let sheet = [
   ['PROJECT 8', '0', '0', '0', '0', '0', '6', '0'],
 ];
 
+// set salesforce state values
+let states = document.querySelectorAll("select[name*='oneDayState']");
+states.forEach(function (item) {
+  item.value = "MO";
+});
+
 // returns the sum of an array of numbers (called in .reduce())
 function add(accumulator, a) {
   return (Number(accumulator) + Number(a)).toFixed(2);
