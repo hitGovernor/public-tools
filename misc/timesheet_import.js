@@ -1,13 +1,14 @@
-let sheet = [
-  ['PROJECT 1', '1', '0', '0', '0', '0', '0', '0'],
-  ['PROJECT 2', '0', '2', '0', '0', '0', '0', '0'],
-  ['PROJECT 3', '0', '0', '3', '0', '0', '0', '0'],
-  ['PROJECT 4', '0', '0', '0', '4', '0', '0', '0'],
-  ['PROJECT 5', '0', '0', '0', '0', '5', '0', '0'],
-  ['PROJECT 6', '0', '0', '0', '0', '0', '6', '0'],
-  ['PROJECT 7', '0', '0', '0', '0', '0', '0', '7'],
-  ['PROJECT 8', '0', '0', '0', '0', '0', '6', '0'],
-];
+let user_input = prompt("Enter your time") || "";
+let sheet = [];
+
+if (user_input === "") {
+  console.log("no time entered");
+} else {
+  var tmp_sheet = user_input.split(/\n/);
+  tmp_sheet.forEach(function (item) {
+    sheet.push(item.split("~~"));
+  });
+}
 
 // set salesforce state values
 let states = document.querySelectorAll("select[name*='oneDayState']");
@@ -28,21 +29,25 @@ rows.forEach(function (row, row_index) {
   let project = row.querySelector("td:not(.customTableNumber)").innerText;
 
   row.querySelectorAll("input").forEach(function (input, input_index) {
-    let task = sheet.filter(function (item) {
+    let task = sheet.filter(function (item, item_index) {
       if (project === item[0]) {
+        if (sheet[item_index].indexOf("FOUND") < 0) {
+          sheet[item_index].push("FOUND");
+        }
         return item;
       }
     });
 
     task.forEach(function (item) {
       input.value = item[input_index + 1];
+      input.setAttribute("style", "background-color: #E7F0CC");
     });
 
     // build array of hours for each column
     col_inputs[input_index] = col_inputs[input_index] || [];
     col_inputs[input_index].push(input.value);
     // build array of hours for each row
-    row_values[input_index] = input.value
+    row_values[input_index] = input.value;
 
     // update row totals
     row_total.innerText = row_values.reduce(add, 0);
