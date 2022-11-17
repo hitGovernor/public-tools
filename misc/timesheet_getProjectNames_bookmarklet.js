@@ -1,0 +1,1 @@
+javascript:(function()%7Blet output%3D""%3Bdocument.querySelectorAll("table.customTable tr").forEach(function(row)%7Blet project%3Drow.querySelector("td span%5Bid*%3D%27timesheetConsultant%27%5D")%3Bif(project)%7Blet project_name%3Dproject.innerText%3Boutput%2B%3D"%5Cn"%2Bproject_name%3B%7D%7D)%3Bconsole.log(output)%3B%7D)()%3B
