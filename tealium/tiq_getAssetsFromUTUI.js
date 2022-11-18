@@ -165,6 +165,24 @@ let tiqHelper = {
   },
 
   /**
+   * returns an object with the number of active, inactive, and total tags assigned to a load rule
+   * @param {string} type - specifies asset type (tag, extension, loadrule)
+   * @param {object} asset = the asset being evaluated (tag, extension, loadrule)
+   * @returns {string} - eg// { active: 15, inactive: 2, total: 17 }
+   */
+  getLoadRuleTagCount: function (type, asset) {
+    if (type === "loadrule") {
+      return utui.loadrules.getTagsScopedCount(asset) || {};
+    } else {
+      return {
+        active: "",
+        inactive: "",
+        total: ""
+      };
+    }
+  },
+
+  /**
    * returns a pipe-delimited list of load rules (UID) associated with each tag
    * @param {string} type - specifies asset type (tag, extension, loadrule)
    * @param {object} asset = the asset being evaluated (tag, extension, loadrule)
@@ -230,10 +248,10 @@ let tiqHelper = {
    * @param {object} asset - the asset being evaluated
    * @returns {string}
    */
-  getParentLibrary: function(asset) {
+  getParentLibrary: function (asset) {
     try {
       return asset.settings.profileid;
-    } catch(err) {
+    } catch (err) {
       return "";
     }
   },
@@ -309,6 +327,8 @@ let tiqHelper = {
 
       for (let key in assets) {
         let tmp = {};
+        let loadRuleTagCounts = tiqHelper.getLoadRuleTagCount(item, assets[key]);
+
         tmp.account = ACCOUNT;
         tmp.profile = PROFILE;
         tmp.parentLibrary = tiqHelper.getParentLibrary(assets[key]);
@@ -320,6 +340,8 @@ let tiqHelper = {
         tmp.status = tiqHelper.getStatus(item, assets[key]);
         tmp.labels = tiqHelper.getLabels(item, assets[key]);
         tmp.mappedVars = tiqHelper.getMappedVars(item, assets[key]);
+        tmp.loadRuleTagsActive = loadRuleTagCounts.active;
+        tmp.loadRuleTagsInactive = loadRuleTagCounts.inactive;
         tmp.tagLoadRules = tiqHelper.getLoadRulesForTags(item, assets[key]);
         tmp.extensionScope = tiqHelper.getExtensionScope(item, assets[key]);
         tmp.lastModified = tiqHelper.getLastModified(item, assets[key]);
