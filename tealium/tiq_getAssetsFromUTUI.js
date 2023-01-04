@@ -2,7 +2,7 @@ let tiqHelper = {
   /**
    * returns the asset's ID
    * @param {string} type - asset type (tag, extension, loadrule, datalayer)
-   * @param {object} asset - the asset being evaluate
+   * @param {object} asset - the asset being evaluated
    * @returns {string} - eg// "14"
    */
   getId: function (type, asset) {
@@ -16,7 +16,7 @@ let tiqHelper = {
   /**
    * returns the asset's name
    * @param {string} type - asset type (tag, extension, loadrule, datalayer)
-   * @param {object} asset - the asset being evaluate
+   * @param {object} asset - the asset being evaluated
    * @returns {string} - eg// "Name of Tag"
    * @example
    */
@@ -33,7 +33,7 @@ let tiqHelper = {
   /**
    * returns the asset's template type
    * @param {string} type - asset type (tag, extension, loadrule, datalayer)
-   * @param {object} asset - the asset being evaluate
+   * @param {object} asset - the asset being evaluated
    * @returns {string} - eg// "Tealium Generic Tag", "Lookup Table", "Floodlight (gtag.js)"
    */
   getType: function (type, asset) {
@@ -56,7 +56,7 @@ let tiqHelper = {
   /**
    * returns the asset's status (active/inactive)
    * @param {string} type - asset type (tag, extension, loadrule, datalayer)
-   * @param {object} asset - the asset being evaluate
+   * @param {object} asset - the asset being evaluated
    * @returns {string} - eg// "active"
    */
   getStatus: function (type, asset) {
@@ -70,22 +70,45 @@ let tiqHelper = {
   /**
    * returns the asset's active environments (dev,qa,prod)
    * @param {string} type - asset type (tag, extension, loadrule, datalayer)
-   * @param {object} asset - the asset being evaluate
-   * @returns {string} - "dev|prod|qa"
+   * @param {object} asset - the asset being evaluated
+   * @returns {object} - {"last_modified": "202301011234", "dev": "202301011234", "qa": "202301011234", "prod": "202301011234"}
    */
-  getPublishRevisions: function (type, asset) {
+  getPublishTargets: function (type, asset) {
     try {
-      return Object.keys(asset.publish_revisions.svr_save_timestamps).sort().join("|")
-      // return Object.keys(asset.publish_revisions.svr_save_timestamps).sort();
+      let retval = {
+        last_modified: asset.publish_revisions.last_modified
+      };
+
+      Object.assign(retval, asset.publish_revisions.svr_save_timestamps);
+      return retval;
     } catch (err) {
-      return "";
+      return {};
+    }
+  },
+
+  /**
+   * returns details about the asset's latest publish
+   * @param {string} pub_date - last publish date (yyyymmddhhmm)
+   * @returns {object} - {"operator": "user@domain.com", "notes": "release includes these changes..."}
+   */
+  getLastPublishDetail: function (pub_date) {
+    try {
+      let retval = {};
+      let obj = utui.data.publish_history[pub_date][pub_date];
+
+      retval.notes = obj.notes;
+      retval.operator = obj.operator;
+
+      return retval;
+    } catch (err) {
+      return {};
     }
   },
 
   /**
    * returns the asset's last modified date (yyyymmddhhmm)
    * @param {string} type - asset type (tag, extension, loadrule, datalayer)
-   * @param {object} asset - the asset being evaluate
+   * @param {object} asset - the asset being evaluated
    * @returns {string} - eg// 202102040010
    */
   getLastModified: function (type, asset) {
@@ -264,14 +287,11 @@ let tiqHelper = {
    * @example var allAssets=tiqHelper.getAllAssets(); tiqHelper.convertToCSV(allAssets);
    */
   convertToCSV: function (assets) {
-    let allBody = [],
-      headers = [];
+    let allBody = [];
+    let headers = [];
 
     // build the csv header row based on keys in first asset
-    for (let key in assets[0]) {
-      headers.push(key);
-    }
-    headers = headers.join(",") + "\n";
+    headers = Object.keys(assets[0]).join(",") + "\n";
 
     // loop throug all assets to build the individual rows
     for (let item in assets) {
@@ -280,7 +300,7 @@ let tiqHelper = {
 
       for (let key in tmp) {
         tmpArray.push(tmp[key]);
-      }
+      } 
 
       allBody.push(tmpArray.join(","));
     }
@@ -328,6 +348,8 @@ let tiqHelper = {
       for (let key in assets) {
         let tmp = {};
         let loadRuleTagCounts = tiqHelper.getLoadRuleTagCount(item, assets[key]);
+        let publishTargetsAndDates = tiqHelper.getPublishTargets(item, assets[key]);
+        let lastProdPublishDetails = tiqHelper.getLastPublishDetail(publishTargetsAndDates.prod);
 
         tmp.account = ACCOUNT;
         tmp.profile = PROFILE;
@@ -335,7 +357,12 @@ let tiqHelper = {
         tmp.assetType = item;
         tmp.id = tiqHelper.getId(item, assets[key]);
         tmp.name = tiqHelper.getName(item, assets[key]);
-        tmp.publishedTargets = tiqHelper.getPublishRevisions(item, assets[key]);
+        tmp.lastModified = publishTargetsAndDates.last_modified || "unpublished";
+        tmp.lastDevPubDate = publishTargetsAndDates.dev || "unpublished";
+        tmp.lastQAPubDate = publishTargetsAndDates.qa || "unpublished";
+        tmp.lastProdPubDate = publishTargetsAndDates.prod || "unpublished";
+        tmp.lastProdPubUser = lastProdPublishDetails.operator || "";
+        tmp.lastProdPubNotes = lastProdPublishDetails.notes || "";
         tmp.type = tiqHelper.getType(item, assets[key]);
         tmp.status = tiqHelper.getStatus(item, assets[key]);
         tmp.labels = tiqHelper.getLabels(item, assets[key]);
@@ -344,7 +371,6 @@ let tiqHelper = {
         tmp.loadRuleTagsInactive = loadRuleTagCounts.inactive;
         tmp.tagLoadRules = tiqHelper.getLoadRulesForTags(item, assets[key]);
         tmp.extensionScope = tiqHelper.getExtensionScope(item, assets[key]);
-        tmp.lastModified = tiqHelper.getLastModified(item, assets[key]);
 
         retval.push(tmp);
       }
