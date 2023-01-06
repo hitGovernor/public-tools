@@ -1,4 +1,12 @@
 let allTiQAssets = [];
+let results = {
+  profiles: 0,
+  tag: 0,
+  loadrule: 0,
+  extension: 0,
+  datalayer: 0
+};
+
 let tiqHelper = {
   /**
    * returns the asset's ID
@@ -366,6 +374,7 @@ let tiqHelper = {
       let assets = assetSources[assetType];
 
       for (let key in assets) {
+        results[assetType]++;
         let tmp = {};
         let loadRuleTagCounts = tiqHelper.getLoadRuleTagCount(assetType, assets[key]);
         let publishTargetsAndDates = tiqHelper.getPublishTargets(assetType, assets[key]);
@@ -403,8 +412,6 @@ let tiqHelper = {
 
 // get all profiles, loop through array to get inventory, log process, download csv
 utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
-  let counter = 0;
-
   profiles.forEach(function (profile) {
     utui.profile.getProfile(null, {
       r: "getProfile",
@@ -412,11 +419,11 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
       profile: profile
     }, function (data) {
       tiqHelper.getAllAssets(data);
-      counter++
+      results.profiles++
 
-      console.log("TIQ_AUDIT: PROCESSING", counter, "of", profiles.length, data);
-      if (counter >= profiles.length) {
-        console.log("TIQ_AUDIT: DONE", counter, "of", profiles.length, allTiQAssets);
+      console.log("TIQ_AUDIT: PROCESSING", results.profiles, "of", profiles.length, data.profile, data);
+      if (results.profiles >= profiles.length) {
+        console.log("TIQ_AUDIT: DONE", results.profiles, "of", profiles.length, results, allTiQAssets);
         tiqHelper.download(tiqHelper.convertToCSV(allTiQAssets), utui.login.account);
       }
     });
