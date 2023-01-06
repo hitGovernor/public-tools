@@ -97,7 +97,9 @@ let tiqHelper = {
       let retval = {};
       let obj = payload.publish_history[pub_date][pub_date];
 
-      retval.notes = obj.notes;
+      retval.notes = this.decodeHTMLEntities(obj.notes);
+
+      // retval.notes = decodeURIComponent(obj.notes).replace(/[\n,]/ig, "; ");
       retval.operator = obj.operator;
 
       return retval;
@@ -281,11 +283,22 @@ let tiqHelper = {
   },
 
   /**
+   * 
+   * @param {string} str - string to decode
+   * @returns {string} - decoded string
+   * @example tiqHelper.decodeHTMLEntities("this string has &quot;quotes&quot;") => "this string has \"quotes\""
+   */
+  decodeHTMLEntities: function (str) {
+    let txt = document.createElement("textarea");
+    txt.innerHTML = str;
+    return txt.value;
+  },
+
+  /**
    * returns a comma-delimited string of all assets; suitable for copy/paste into spreadsheet
    * @param {array} assets - an array of objects, where each object represents a single asset
    * @returns {string}
    * @example tiqHelper.convertToCSV(tiqHelper.getAllAssets());
-   * @example var allAssets=tiqHelper.getAllAssets(); tiqHelper.convertToCSV(allAssets);
    */
   convertToCSV: function (assets) {
     let allBody = [];
@@ -311,25 +324,31 @@ let tiqHelper = {
   },
 
   /**
-   * shortcut for getting all assets of all types
-   * @returns {array} an array of objects, where each object is a single asset
-   * @example tiqHelper.getAllAssets();
+   * downloads inventory as a csv file
+   * @param {string} data - csv-formatted input
+   * @param {*} tiq_account - name of tiq account, used in download file name: tiq-download-{{account}}.csv
    */
-  getAllAssets: function (payload) {
-    let retval = this.getAssetsByType(payload);
-    return retval;
+  download: function (data, tiq_account) {
+    const blob = new Blob([data], {
+      type: 'text/csv'
+    });
+
+    // create object for download url
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.setAttribute('href', url);
+    a.setAttribute('download', 'tiq-inventory-' + tiq_account + '.csv');
+
+    // download the file
+    a.click();
   },
 
   /**
-   * returns specified asset types: tag, extension, loadrule, datalayer; accepts 0 - n parameters
-   * @param {...string=} asset_type - type of asset(s) to return
+   * returns all asset types: tag, extension, loadrule, datalayer
+   * @param {object} payload - profile object as provided by utui.profile.getProfile() method
    * @returns {array} an array of objects, where each object is a single asset
-   * @example tiqHelper.getAssetsByType("tag");
-   * // returns all assets of type "tag"
-   * @example tiqHelper.getAssetsByType("tag", "extension", "loadrule");
-   * // returns all assets of type "tag", "extension", and "loadrule"
    */
-  getAssetsByType: function (payload) {
+  getAllAssets: function (payload) {
     let ACCOUNT = payload.account || payload.settings.account;
     let PROFILE = payload.profile || payload.settings.profileid;
     let assetTypesToRetrieve = ["tag", "extension", "loadrule", "datalayer"];
@@ -382,20 +401,26 @@ let tiqHelper = {
   }
 };
 
-utui.automator.getAllProfiles(utui.login.account).then(function (data) {
-  let profiles = data.sort();  
+// get all profiles, loop through array to get inventory, log process, download csv
+utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
+  let counter = 0;
+
   profiles.forEach(function (profile) {
     utui.profile.getProfile(null, {
       r: "getProfile",
       account: utui.login.account,
       profile: profile
     }, function (data) {
-      // console.log(profile, data);
       tiqHelper.getAllAssets(data);
+      counter++
+
+      console.log("TIQ_AUDIT: PROCESSING", counter, "of", profiles.length, data);
+      if (counter >= profiles.length) {
+        console.log("TIQ_AUDIT: DONE", counter, "of", profiles.length, allTiQAssets);
+        tiqHelper.download(tiqHelper.convertToCSV(allTiQAssets), utui.login.account);
+      }
     });
   });
 }).catch(function (err) {
   console.log(err)
 });
-
-// console.log(allTiQAssets); // wait for all processing to complete first
