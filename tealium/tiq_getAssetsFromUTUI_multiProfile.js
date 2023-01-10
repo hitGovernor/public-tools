@@ -106,8 +106,6 @@ let tiqHelper = {
       let obj = payload.publish_history[pub_date][pub_date];
 
       retval.notes = this.decodeHTMLEntities(obj.notes);
-
-      // retval.notes = decodeURIComponent(obj.notes).replace(/[\n,]/ig, "; ");
       retval.operator = obj.operator;
 
       return retval;
@@ -298,7 +296,7 @@ let tiqHelper = {
    */
   decodeHTMLEntities: function (str) {
     let txt = document.createElement("textarea");
-    txt.innerHTML = str;
+    txt.innerHTML = str.replace(/[\n,]/ig, "; ");
     return txt.value;
   },
 
@@ -336,7 +334,8 @@ let tiqHelper = {
    * @param {string} data - csv-formatted input
    * @param {*} tiq_account - name of tiq account, used in download file name: tiq-download-{{account}}.csv
    */
-  download: function (data, tiq_account) {
+  download: function (data, tiq_account, suffix) {
+    let filename = 'tiq-inventory-' + tiq_account + ((suffix) ? "-" + suffix : "") + ".csv"
     const blob = new Blob([data], {
       type: 'text/csv'
     });
@@ -345,7 +344,7 @@ let tiqHelper = {
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.setAttribute('href', url);
-    a.setAttribute('download', 'tiq-inventory-' + tiq_account + '.csv');
+    a.setAttribute('download', filename);
 
     // download the file
     a.click();
