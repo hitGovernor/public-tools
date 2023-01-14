@@ -301,6 +301,67 @@ let tiqHelper = {
     return txt.value;
   },
 
+  getLoadRulesByTag: function (tags_only, loadrules_only) {
+    let loadRulesByTag = [];
+
+    tags_only.forEach(function (item) {
+      let loadRules = item.tagLoadRules.split("|");
+
+      loadRules.forEach(function (lrule) {
+        let tmpObj = {
+          account: item.account,
+          tagId: item.id,
+          tagName: item.name,
+          status: item.status,
+          assetCategory: item.assetCategory,
+          assetType: item.assetType,
+          labels: item.labels,
+          lastProdPubUser: item.lastProdPubUser,
+          loadRuleId: lrule,
+          parentLibrary: item.parentLibrary,
+          profile: item.profile
+        }
+
+        loadrules_only.filter(function (lr) {
+          if (lr.account === item.account && lr.profile === item.profile && lr.id === lrule) {
+            tmpObj.loadRuleName = lr.name;
+          }
+        });
+        loadRulesByTag.push(tmpObj);
+      });
+    });
+    console.log("TIQ_AUDIT: LOAD RULES BY TAG", loadRulesByTag);
+    tiqHelper.download(tiqHelper.convertToCSV(loadRulesByTag), "by-loadrule");
+  },
+
+  getDataLayerByTag: function (tags_only) {
+    let dataLayerByTag = [];
+    tags_only.forEach(function (item) {
+      let mappedVars = item.mappedVars.split("|");
+
+      mappedVars.forEach(function (mvar) {
+        let tmpObj = {
+          account: item.account,
+          tagId: item.id,
+          tagName: item.name,
+          status: item.status,
+          assetCategory: item.assetCategory,
+          assetType: item.assetType,
+          labels: item.labels,
+          lastProdPubUser: item.lastProdPubUser,
+          variable: mvar,
+          parentLibrary: item.parentLibrary,
+          profile: item.profile
+        }
+
+        dataLayerByTag.push(tmpObj);
+        console.log(tmpObj);
+      });
+    });
+    console.log("TIQ_AUDIT: DATA LAYER VARIABLES BY TAG", dataLayerByTag);
+    tiqHelper.download(tiqHelper.convertToCSV(dataLayerByTag), "by-datalayer");
+  },
+
   /**
    * returns a comma-delimited string of all assets; suitable for copy/paste into spreadsheet
    * @param {array} assets - an array of objects, where each object represents a single asset
@@ -335,7 +396,8 @@ let tiqHelper = {
    * @param {string} data - csv-formatted input
    * @param {*} tiq_account - name of tiq account, used in download file name: tiq-download-{{account}}.csv
    */
-  download: function (data, tiq_account, suffix) {
+  download: function (data, suffix) {
+    tiq_account = tiqHelper.account || "";
     let filename = 'tiq-inventory-' + tiq_account + ((suffix) ? "-" + suffix : "") + ".csv"
     const blob = new Blob([data], {
       type: 'text/csv'
@@ -357,7 +419,7 @@ let tiqHelper = {
    * @returns {array} an array of objects, where each object is a single asset
    */
   getAllAssets: function (payload) {
-    let ACCOUNT = payload.account || payload.settings.account;
+    let ACCOUNT = tiqHelper.account = payload.account || payload.settings.account;
     let PROFILE = payload.profile || payload.settings.profileid;
     let assetCategorysToRetrieve = ["tag", "extension", "loadrule", "datalayer"];
     let retval = [];
@@ -425,7 +487,6 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
 
       if (results.profiles >= profiles.length) {
         console.log("TIQ_AUDIT: DONE", results.profiles, "of", profiles.length, results, allTiQAssets);
-        tiqHelper.download(tiqHelper.convertToCSV(allTiQAssets), utui.login.account);
 
         tiqHelper.tagsOnly = allTiQAssets.filter(function (item) {
           if (item.assetCategory === "tag") {
@@ -439,17 +500,15 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
           }
         });
 
-        tiqHelper.dataLayerOnly = allTiQAssets.filter(function (item) {
-          if (item.assetCategory === "datalayer") {
-            return item;
-          }
-        });
-
-        tiqHelper.extensionsOnly = allTiQAssets.filter(function (item) {
-          if (item.assetCategory === "extension") {
-            return item;
-          }
-        });
+        if (confirm("Download full inventory?") === true) {
+          tiqHelper.download(tiqHelper.convertToCSV(allTiQAssets), "full");
+        }
+        if (confirm("Download load rules broken out by tag?") === true) {
+          tiqHelper.getLoadRulesByTag(tiqHelper.tagsOnly, tiqHelper.loadRulesOnly);
+        }
+        if (confirm("Download data layer variables broken out by tag?") === true) {
+          tiqHelper.getDataLayerByTag(tiqHelper.tagsOnly);
+        }
       }
     });
   });
