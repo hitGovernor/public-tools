@@ -192,8 +192,9 @@ let tiqHelper = {
       }
     }
 
-    return output.join("|");
-    // return output;
+    output = output.join("|");
+    output = tiqHelper.decodeHTMLEntities(output);
+    return output;
   },
 
   /**
@@ -358,7 +359,7 @@ let tiqHelper = {
   getAllAssets: function (payload) {
     let ACCOUNT = payload.account || payload.settings.account;
     let PROFILE = payload.profile || payload.settings.profileid;
-    let assetTypesToRetrieve = ["tag", "extension", "loadrule", "datalayer"];
+    let assetCategorysToRetrieve = ["tag", "extension", "loadrule", "datalayer"];
     let retval = [];
 
     // specifies the js object to evaluate for the asset type
@@ -369,36 +370,37 @@ let tiqHelper = {
       datalayer: payload.define
     };
 
-    assetTypesToRetrieve.forEach(function (assetType) {
-      let assets = assetSources[assetType];
+    assetCategorysToRetrieve.forEach(function (assetCategory) {
+      let assets = assetSources[assetCategory];
 
       for (let key in assets) {
-        results[assetType]++;
+        results[assetCategory]++;
         let tmp = {};
-        let loadRuleTagCounts = tiqHelper.getLoadRuleTagCount(assetType, assets[key]);
-        let publishTargetsAndDates = tiqHelper.getPublishTargets(assetType, assets[key]);
+        let loadRuleTagCounts = tiqHelper.getLoadRuleTagCount(assetCategory, assets[key]);
+        let publishTargetsAndDates = tiqHelper.getPublishTargets(assetCategory, assets[key]);
         let lastProdPublishDetails = tiqHelper.getLastPublishDetail(payload, publishTargetsAndDates.prod);
 
         tmp.account = ACCOUNT;
         tmp.profile = PROFILE;
         tmp.parentLibrary = tiqHelper.getParentLibrary(assets[key]);
-        tmp.assetType = assetType;
-        tmp.id = tiqHelper.getId(assetType, assets[key]);
-        tmp.name = tiqHelper.getName(assetType, assets[key]);
+        tmp.assetType = assets[key].type;
+        tmp.assetCategory = assetCategory;
+        tmp.id = tiqHelper.getId(assetCategory, assets[key]);
+        tmp.name = tiqHelper.getName(assetCategory, assets[key]);
         tmp.lastModified = publishTargetsAndDates.last_modified || "unpublished";
         tmp.lastDevPubDate = publishTargetsAndDates.dev || "unpublished";
         tmp.lastQAPubDate = publishTargetsAndDates.qa || "unpublished";
         tmp.lastProdPubDate = publishTargetsAndDates.prod || "unpublished";
         tmp.lastProdPubUser = lastProdPublishDetails.operator || "";
         tmp.lastProdPubNotes = lastProdPublishDetails.notes || "";
-        tmp.type = tiqHelper.getType(assetType, assets[key]);
-        tmp.status = tiqHelper.getStatus(assetType, assets[key]);
-        tmp.labels = tiqHelper.getLabels(assetType, assets[key]);
-        tmp.mappedVars = tiqHelper.getMappedVars(assetType, assets[key]);
+        tmp.type = tiqHelper.getType(assetCategory, assets[key]);
+        tmp.status = tiqHelper.getStatus(assetCategory, assets[key]);
+        tmp.labels = tiqHelper.getLabels(assetCategory, assets[key]);
+        tmp.mappedVars = tiqHelper.getMappedVars(assetCategory, assets[key]);
         tmp.loadRuleTagsActive = loadRuleTagCounts.active;
         tmp.loadRuleTagsInactive = loadRuleTagCounts.inactive;
-        tmp.tagLoadRules = tiqHelper.getLoadRulesForTags(assetType, assets[key]);
-        tmp.extensionScope = tiqHelper.getExtensionScope(assetType, assets[key]);
+        tmp.tagLoadRules = tiqHelper.getLoadRulesForTags(assetCategory, assets[key]);
+        tmp.extensionScope = tiqHelper.getExtensionScope(assetCategory, assets[key]);
 
         allTiQAssets.push(tmp);
         retval.push(tmp);
@@ -419,11 +421,35 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
     }, function (data) {
       tiqHelper.getAllAssets(data);
       results.profiles++
-
       console.log("TIQ_AUDIT: PROCESSING", results.profiles, "of", profiles.length, data.profile, data);
+
       if (results.profiles >= profiles.length) {
         console.log("TIQ_AUDIT: DONE", results.profiles, "of", profiles.length, results, allTiQAssets);
         tiqHelper.download(tiqHelper.convertToCSV(allTiQAssets), utui.login.account);
+
+        tiqHelper.tagsOnly = allTiQAssets.filter(function (item) {
+          if (item.assetCategory === "tag") {
+            return item;
+          }
+        });
+
+        tiqHelper.loadRulesOnly = allTiQAssets.filter(function (item) {
+          if (item.assetCategory === "loadrule") {
+            return item;
+          }
+        });
+
+        tiqHelper.dataLayerOnly = allTiQAssets.filter(function (item) {
+          if (item.assetCategory === "datalayer") {
+            return item;
+          }
+        });
+
+        tiqHelper.extensionsOnly = allTiQAssets.filter(function (item) {
+          if (item.assetCategory === "extension") {
+            return item;
+          }
+        });
       }
     });
   });
