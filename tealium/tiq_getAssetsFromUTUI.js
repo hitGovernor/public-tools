@@ -280,6 +280,37 @@ let tiqHelper = {
   },
 
   /**
+   * returns the doNotSell status for the specified TAG
+   * @param {string} type - asset type (tag, extension, loadrule, datalayer)
+   * @param {object} asset - the asset being evaluated
+   * @returns {Boolean} true if DNS enabled for tag, otherwise false
+   */
+  getDoNotSellStatus: function (type, asset) {
+    try {
+      if (type === "tag") {
+        let retval = "";
+
+        for (key in utui.data.privacy_management.doNotSell.categories) {
+          let tmp = utui.data.privacy_management.doNotSell.categories[key];
+
+          tmp.tagid.forEach(function (item) {
+            if (item.id === asset.id) {
+              retval = item.doNotSell;
+              return false; // break the loop
+            }
+          });
+
+          if (retval !== "") {
+            break;
+          }
+        }
+        return retval;
+      };
+    } catch (err) {
+      /*ignore*/ }
+  },
+
+  /**
    * returns a comma-delimited string of all assets; suitable for copy/paste into spreadsheet
    * @param {array} assets - an array of objects, where each object represents a single asset
    * @returns {string}
@@ -300,7 +331,7 @@ let tiqHelper = {
 
       for (let key in tmp) {
         tmpArray.push(tmp[key]);
-      } 
+      }
 
       allBody.push(tmpArray.join(","));
     }
@@ -371,6 +402,7 @@ let tiqHelper = {
         tmp.loadRuleTagsInactive = loadRuleTagCounts.inactive;
         tmp.tagLoadRules = tiqHelper.getLoadRulesForTags(item, assets[key]);
         tmp.extensionScope = tiqHelper.getExtensionScope(item, assets[key]);
+        tmp.doNotSell = tiqHelper.getDoNotSellStatus(item, assets[key]);
 
         retval.push(tmp);
       }
