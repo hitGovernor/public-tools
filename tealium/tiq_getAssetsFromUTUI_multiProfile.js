@@ -27,7 +27,6 @@ let tiqHelper = {
    * @param {string} type - asset type (tag, extension, loadrule, datalayer)
    * @param {object} asset - the asset being evaluated
    * @returns {string} - eg// "Name of Tag"
-   * @example
    */
   getName: function (type, asset) {
     try {
@@ -290,7 +289,38 @@ let tiqHelper = {
   },
 
   /**
-   * 
+   * returns the doNotSell status for the specified TAG
+   * @param {string} type - asset type (tag, extension, loadrule, datalayer)
+   * @param {object} asset - the asset being evaluated
+   * @returns {Boolean} true if DNS enabled for tag, otherwise false
+   */
+  getDoNotSellStatus: function (type, asset) {
+    try {
+      if (type === "tag") {
+        let retval = "";
+
+        for (key in utui.data.privacy_management.doNotSell.categories) {
+          let tmp = utui.data.privacy_management.doNotSell.categories[key];
+
+          tmp.tagid.forEach(function (item) {
+            if (item.id === asset.id) {
+              retval = item.doNotSell;
+              return false; // break the loop
+            }
+          });
+
+          if (retval !== "") {
+            break;
+          }
+        }
+        return retval;
+      };
+    } catch (err) {
+      /*ignore*/ }
+  },
+
+  /**
+   * cleans up strings to prevent unexpected/unnecessary line or column breaks when exporting to csv
    * @param {string} str - string to decode
    * @returns {string} - decoded string
    * @example tiqHelper.decodeHTMLEntities("this string has &quot;quotes&quot;") => "this string has \"quotes\""
@@ -355,7 +385,6 @@ let tiqHelper = {
         }
 
         dataLayerByTag.push(tmpObj);
-        console.log(tmpObj);
       });
     });
     console.log("TIQ_AUDIT: DATA LAYER VARIABLES BY TAG", dataLayerByTag);
@@ -463,6 +492,7 @@ let tiqHelper = {
         tmp.loadRuleTagsInactive = loadRuleTagCounts.inactive;
         tmp.tagLoadRules = tiqHelper.getLoadRulesForTags(assetCategory, assets[key]);
         tmp.extensionScope = tiqHelper.getExtensionScope(assetCategory, assets[key]);
+        tmp.doNotSell = tiqHelper.getDoNotSellStatus(assetCategory, assets[key]);
 
         allTiQAssets.push(tmp);
         retval.push(tmp);
@@ -473,13 +503,101 @@ let tiqHelper = {
   }
 };
 
-// get all profiles, loop through array to get inventory, log process, download csv
-utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
+// build and insert modal.....
+
+const style = document.createElement('style'); // create style element
+// set innerHTML to CSS styles for modal container
+style.innerHTML = `
+  #mytiq-inventory {
+    /*display: flex; */
+    position: fixed;
+    padding: 10px;
+    top: 50px;
+    left: 50px;
+    width: 75%;
+    height: 75%;
+    background-color: silver; /*rgba(0, 0, 0, 0.5);*/
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+    overflow: auto;
+  }
+`;
+document.head.appendChild(style); // append style element to document head
+
+function elementCleanup(ele) {
+  if (ele) {
+    ele.remove();
+  }
+}
+
+function showHide(ele) {
+console.log(ele, ele.style.display);
+  if (ele) {
+    if (ele.style.display === "none") {
+      ele.style.display = "block";
+    } else {
+      ele.style.display = "none";
+    }
+  }
+}
+
+elementCleanup(document.getElementById("mytiq-inventory"));
+let mytiq_form = document.createElement("form");
+mytiq_form.setAttribute("id", "mytiq-inventory");
+
+elementCleanup(document.getElementById("mytiq-fieldset"));
+let mytiq_fs = document.createElement("fieldset");
+mytiq_fs.id = "mytiq-fieldset";
+
+elementCleanup(document.getElementById("mytiq-showhide"));
+let mytiq_close_modal = document.createElement("a");
+mytiq_close_modal.id = "mytiq-showhide";
+mytiq_close_modal.innerHTML = "Close Modal<br>";
+mytiq_close_modal.addEventListener("click", function () {
+  showHide(document.getElementById("mytiq-inventory"));
+});
+
+elementCleanup(document.getElementById("mytiq-deselect"));
+let mytiq_deselect_all = document.createElement("a");
+mytiq_deselect_all.id = "mytiq-deselect";
+mytiq_deselect_all.innerHTML = "De-select All<br>";
+mytiq_deselect_all.addEventListener("click", function () {
+  document.querySelectorAll("form#mytiq-inventory input[type='checkbox']").forEach(function (item) {
+    item.checked = false;
+  });
+});
+
+elementCleanup(document.getElementById("mytiq-select"));
+let mytiq_select_all = document.createElement("a");
+mytiq_select_all.id = "mytiq-select";
+mytiq_select_all.innerHTML = "Select All<br><br>";
+mytiq_select_all.addEventListener("click", function () {
+  document.querySelectorAll("form#mytiq-inventory input[type='checkbox']").forEach(function (item) {
+    item.checked = true;
+  });
+});
+
+let mytiq_submit = document.createElement("input");
+mytiq_submit.setAttribute("type", "button");
+mytiq_submit.setAttribute("value", "Get Inventory");
+mytiq_submit.addEventListener("click", function () {
+  let checked = document.getElementById("mytiq-fieldset");
+  let profiles = checked.querySelectorAll("input:checked");
+
+  results = {
+    profiles: 0,
+    tag: 0,
+    loadrule: 0,
+    extension: 0,
+    datalayer: 0
+  }
+
   profiles.forEach(function (profile) {
     utui.profile.getProfile(null, {
       r: "getProfile",
       account: utui.login.account,
-      profile: profile
+      profile: profile.id
     }, function (data) {
       tiqHelper.getAllAssets(data);
       results.profiles++
@@ -500,18 +618,49 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
           }
         });
 
-        if (confirm("Download full inventory?") === true) {
+        if (confirm("Download FULL inventory?") === true) {
           tiqHelper.download(tiqHelper.convertToCSV(allTiQAssets), "full");
         }
-        if (confirm("Download load rules broken out by tag?") === true) {
+        if (confirm("Download LOAD RULES broken out by tag?") === true) {
           tiqHelper.getLoadRulesByTag(tiqHelper.tagsOnly, tiqHelper.loadRulesOnly);
         }
-        if (confirm("Download data layer variables broken out by tag?") === true) {
+        if (confirm("Download DATA LAYER variables broken out by tag?") === true) {
           tiqHelper.getDataLayerByTag(tiqHelper.tagsOnly);
         }
       }
     });
   });
-}).catch(function (err) {
-  console.log(err)
+    showHide(mytiq_form);
 });
+
+// retrieve all profile names (ids) and prep for display (with checkboxes) in modal
+utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
+  profiles = profiles.sort();
+  profiles.forEach(function (profile, idx) {
+    let div = document.createElement("div");
+    div.verticalAlign = "middle";
+
+    let input = document.createElement("input");
+    input.setAttribute("type", "checkbox");
+    input.checked = true;
+    input.setAttribute("id", profile);
+    input.setAttribute("name", profile);
+    input.setAttribute("style", "margin-right: 5px");
+
+    let label = document.createElement("label");
+    label.setAttribute("for", profile);
+    label.innerText = (idx + 1) + " - " + profile;
+
+    div.appendChild(input);
+    div.appendChild(label);
+    mytiq_fs.appendChild(div);
+  });
+});
+
+mytiq_form.appendChild(mytiq_close_modal)
+mytiq_form.appendChild(mytiq_deselect_all);
+mytiq_form.appendChild(mytiq_select_all);
+mytiq_form.appendChild(mytiq_submit);
+mytiq_form.appendChild(mytiq_fs);
+
+document.body.appendChild(mytiq_form);
