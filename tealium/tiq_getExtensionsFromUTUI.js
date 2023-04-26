@@ -1,4 +1,5 @@
 let extensions = utui.data.customizations;
+let delimiter = "~~";
 let csvTitles = [
   "id",
   "title",
@@ -7,10 +8,10 @@ let csvTitles = [
   "status",
   "scope",
   "advExecOption",
-  "lastProdPubUser",
-  "lastProdPubVersion",
+  // "lastProdPubUser",
+  // "lastProdPubVersion",
   "conditions"
-].join(",");
+].join(delimiter);
 let output = [csvTitles];
 
 let getConditions = function (payload) {
@@ -41,10 +42,12 @@ let getLastProdUpdateInfo = function (payload) {
 }
 
 let advExecOptionLookup = {
-  alr: "After Load Rules",
-  blr: "Before Load Rules",
+  alr: "After Load Rules - Run Always",
+  alr_ro: "After Load Rules - Run Once",
+  blr: "Before Load Rules - Run Always",
   blr_ro: "Before Load Rules - Run Once",
-  end: "After Tag Extensions"
+  end: "After Tag Extensions - Run Always",
+  end_ro: "After Tag Extensions - Run Once"
 }
 
 for (extension in extensions) {
@@ -67,7 +70,7 @@ for (extension in extensions) {
   //   lastProdPubVersion: lastProdUpdateInfo.lastProdPubVersion,
   //   conditions: conditions || {}
   // });
-  
+
   output.push([
     item._id,
     item.title,
@@ -76,14 +79,14 @@ for (extension in extensions) {
     item.status,
     item.scope,
     (advExecOptionLookup[item.advExecOption] + " (" + item.advExecOption + ")") || item.advExecOption,
-    lastProdUpdateInfo.lastProdPubUser,
-    lastProdUpdateInfo.lastProdPubVersion,
+    // lastProdUpdateInfo.lastProdPubUser,
+    // lastProdUpdateInfo.lastProdPubVersion,
     conditions || ""
-  ].join(","));
+  ].join(delimiter));
 }
 
 let forCsv = "";
 output.forEach(function (item) {
-  forCsv += "\n" + item;
+  forCsv += (forCsv !== "") ? "\n" + item : item;
 });
 console.log(forCsv);
