@@ -1,3 +1,14 @@
+/**
+ * free for anyone to use as they wish
+ * all uses and risks are your own
+ * i make no promises or claims with this code
+ * 
+ * grabs all extensions from the currently loaded tiq profile
+ * exports results to the console in a ready-for-csv format
+ * easy to copy/paste into excel or google sheets, then parse
+ * into cells w/text-to-columns focusing on the specified delimiter
+ */
+
 let extensions = utui.data.customizations;
 let delimiter = "~~";
 let csvTitles = [
@@ -8,8 +19,6 @@ let csvTitles = [
   "status",
   "scope",
   "advExecOption",
-  // "lastProdPubUser",
-  // "lastProdPubVersion",
   "conditions"
 ].join(delimiter);
 let output = [csvTitles];
@@ -30,27 +39,14 @@ let getConditions = function (payload) {
     return 0;
   });
 
-  // Convert array back to object
-  let objConditions = {};
-  for (var i = 0; i < conditions.length; i++) {
-    objConditions[conditions[i][0]] = conditions[i][1];
-  }
+  conditions.forEach(function (item) {
+    // after splitting into columns in excel, run a substitute(A2,"^|^",CHAR(10)) to break 
+    // conditions into multiple rows in a single cell for easier consumption
+    retval += item[0] + "=" + item[1] + "^|^";
+  });
 
-  for (key in objConditions) {
-    retval += key + "=" + objConditions[key] + "^|^";
-  }
-
+  // strip trailing delimiter
   retval = retval.replace(/(\^\|\^)$/, "");
-  return retval;
-}
-
-let getLastProdUpdateInfo = function (payload) {
-  let lastProdPubDate = payload.publish_revisions.svr_save_timestamps.prod;
-
-  let retval = {};
-  retval.lastProdPubUser = utui.data.publish_history[lastProdPubDate][lastProdPubDate].operator || "";
-  retval.lastProdPubVersion = utui.data.publish_history[lastProdPubDate][lastProdPubDate].title || "";
-
   return retval;
 }
 
@@ -67,22 +63,6 @@ for (extension in extensions) {
   let item = utui.automator.getExtensionById(extension);
 
   let conditions = getConditions(item);
-  let lastProdUpdateInfo = getLastProdUpdateInfo(item);
-
-  console.log(item);
-
-  // output.push({
-  //   id: item._id,
-  //   title: item.title,
-  //   type: item.extType,
-  //   loadOrder: item.sort + 1,
-  //   status: item.status,
-  //   scope: item.scope,
-  //   advExecOption: (advExecOptionLookup[item.advExecOption] + " (" + item.advExecOption + ")") || item.advExecOption,
-  //   lastProdPubUser: lastProdUpdateInfo.lastProdPubUser,
-  //   lastProdPubVersion: lastProdUpdateInfo.lastProdPubVersion,
-  //   conditions: conditions || {}
-  // });
 
   output.push([
     item._id,
@@ -92,8 +72,6 @@ for (extension in extensions) {
     item.status,
     item.scope,
     (advExecOptionLookup[item.advExecOption] + " (" + item.advExecOption + ")") || item.advExecOption,
-    // lastProdUpdateInfo.lastProdPubUser,
-    // lastProdUpdateInfo.lastProdPubVersion,
     conditions || ""
   ].join(delimiter));
 }
