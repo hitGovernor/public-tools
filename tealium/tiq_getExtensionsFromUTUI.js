@@ -15,19 +15,32 @@ let csvTitles = [
 let output = [csvTitles];
 
 let getConditions = function (payload) {
-  let conditions = {};
+  let conditions = [];
   let retval = "";
   for (key in payload) {
     if (/^[0-9]{18}(_[0-9]{18})?_(filter(type)?|source)$/.test(key)) {
-      conditions[key] = payload[key];
+      conditions.push([key, payload[key]]);
     }
   }
 
-  for (key in conditions) {
-    retval += key + "=" + conditions[key] + "|";
+  // Sort array by key names
+  conditions.sort(function (a, b) {
+    if (a[0] < b[0]) return -1;
+    if (a[0] > b[0]) return 1;
+    return 0;
+  });
+
+  // Convert array back to object
+  let objConditions = {};
+  for (var i = 0; i < conditions.length; i++) {
+    objConditions[conditions[i][0]] = conditions[i][1];
   }
 
-  retval = retval.replace(/\|$/, "");
+  for (key in objConditions) {
+    retval += key + "=" + objConditions[key] + "^|^";
+  }
+
+  retval = retval.replace(/(\^\|\^)$/, "");
   return retval;
 }
 
