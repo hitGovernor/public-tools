@@ -15,7 +15,7 @@ let isSampled = (sampleRate, override) => {
 
   // make sure sampleRate is a number between 0 and 100
   if (typeof sampleRate !== 'number' || sampleRate < 0 || sampleRate > 100) {
-    console.warn('Number between 0 and 100 expected, ' + typeof (sampleRate) + ' provided; request not sampled');
+    console.warn('Number between 0 and 100 expected, ' + sampleRate + ' (' + typeof (sampleRate) + ') provided; request not sampled');
     return false;
   }
 
