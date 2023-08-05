@@ -1,8 +1,9 @@
 // parses url parameters into an object of [key, value] pairs
-let parseParams = function (params) {
+let parseParams = function (params, delimiter) {
   let retval = {};
+  delimiter = delimiter || "&";
 
-  params = params.substr(1).split("&");
+  params = params.substr(1).split(delimiter);
   params.forEach(function (item) {
     let tmp = item.split("=");
     retval[tmp[0]] = tmp[1];
@@ -76,10 +77,18 @@ let doCompare = function (lurl, rurl) {
 
   if (compareType === "url") {
     // convert url strings into url objects for easy reference
+    let paramDelimiter = "&";
     let urlLeft = new URL(lurl);
     let urlRight = (rurl) ? new URL(rurl) : urlLeft; // if no right url, assume self-compare with left
-    let leftParams = parseParams(urlLeft.search);
-    let rightParams = parseParams(urlRight.search);
+
+    if((urlLeft.search === "" && urlLeft.pathname.indexOf(";") > 0) &&  (urlRight.search === ""&& urlRight.pathname.indexOf(";") > 0)) {
+      urlLeft.search = urlLeft.pathname.split("/")[urlLeft.pathname.split("/").length-1];
+      urlRight.search = urlRight.pathname.split("/")[urlRight.pathname.split("/").length-1];
+      paramDelimiter = ";";
+    }
+
+    let leftParams = parseParams(urlLeft.search, paramDelimiter);
+    let rightParams = parseParams(urlRight.search, paramDelimiter);
     let paramKeys = mergeKeys(leftParams, rightParams);
 
     // begin compare everything BUT search params
@@ -114,6 +123,10 @@ let doCompare = function (lurl, rurl) {
 
 let tests = [];
 tests.push({
+  left: "https://ad.doubleclick.net/ddm/activity/src=xxxxx1984865;type=abc123;cat=evocom00;u93=[CS]v1aaa111bbb222ccc333-zzz999yyy888xxx777[CE];u94=11111111222222223333333344444444;dc_rdid=%20;ord=1;num=920837467;u38=fb.1.1234567879741.987654321",
+  right: "https://ad.doubleclick.net/ddm/activity/src=aaaaa1984865;type=abc123;cat=evocom00;u93=[CS]v1aaa111bbb222ccc333-zzz999yyy888xxx777[CE];u94=11111111222222223333333344444444;dc_rdid=%20;ord=1;num=920837467;u38=fb.1.1234567879741.987654321"
+});
+tests.push({
   left: "https://team-demo.github.io/call-compare/static/js/main.5c4fb26c.js?a=1&b=2&c=3#no=way",
   right: "https://team-demo.github.io/call-compare/static/js/main.5c4fb26c.js?a=1&b=2&d=4#nos=way"
 });
@@ -132,10 +145,6 @@ tests.push({
 tests.push({
   left: "https://www.example.com/something?a=b&c=d&y=z",
   right: "https://www.example.com/something?a=b&c=e&x=y"
-});
-tests.push({
-  left: "https://ad.doubleclick.net/ddm/activity/src=xxxxx1984865;type=abc123;cat=evocom00;u93=[CS]v1aaa111bbb222ccc333-zzz999yyy888xxx777[CE];u94=11111111222222223333333344444444;dc_rdid=%20;ord=1;num=920837467;u38=fb.1.1234567879741.987654321",
-  right: "https://ad.doubleclick.net/ddm/activity/src=aaaaa1984865;type=abc123;cat=evocom00;u93=[CS]v1aaa111bbb222ccc333-zzz999yyy888xxx777[CE];u94=11111111222222223333333344444444;dc_rdid=%20;ord=1;num=920837467;u38=fb.1.1234567879741.987654321"
 });
 tests.push({
   left: "https://www.example.com/something/a",
