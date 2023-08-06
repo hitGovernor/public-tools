@@ -60,12 +60,12 @@ let mergeKeys = function (left, right) {
   let retval = [];
 
   for (key in left) {
-    if(key && key !== "") retval.push(key);
+    if (key && key !== "") retval.push(key);
   }
 
   for (key in right) {
     if (!retval.includes(key)) {
-      if(key && key !== "") retval.push(key);
+      if (key && key !== "") retval.push(key);
     }
   }
   return retval;
@@ -81,9 +81,9 @@ let doCompare = function (lurl, rurl) {
     let urlLeft = new URL(lurl);
     let urlRight = (rurl) ? new URL(rurl) : urlLeft; // if no right url, assume self-compare with left
 
-    if((urlLeft.search === "" && urlLeft.pathname.indexOf(";") > 0) &&  (urlRight.search === ""&& urlRight.pathname.indexOf(";") > 0)) {
-      urlLeft.search = urlLeft.pathname.split("/")[urlLeft.pathname.split("/").length-1];
-      urlRight.search = urlRight.pathname.split("/")[urlRight.pathname.split("/").length-1];
+    if ((urlLeft.search === "" && urlLeft.pathname.indexOf(";") > 0) && (urlRight.search === "" && urlRight.pathname.indexOf(";") > 0)) {
+      urlLeft.search = urlLeft.pathname.split("/")[urlLeft.pathname.split("/").length - 1];
+      urlRight.search = urlRight.pathname.split("/")[urlRight.pathname.split("/").length - 1];
       paramDelimiter = ";";
     }
 
@@ -93,7 +93,9 @@ let doCompare = function (lurl, rurl) {
 
     // begin compare everything BUT search params
     ['origin', 'protocol', 'host', 'hostname', 'port', 'pathname', 'hash'].forEach(function (key) {
-      result.push(buildResult("url", key, urlLeft[key], urlRight[key]));
+      if (urlLeft[key] != '' && urlRight[key] != '') {
+        result.push(buildResult("url", key, urlLeft[key], urlRight[key]));
+      }
     });
 
     // begin compare search params
