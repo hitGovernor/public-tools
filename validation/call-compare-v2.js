@@ -93,7 +93,7 @@ let doCompare = function (lurl, rurl) {
 
     // begin compare everything BUT search params
     ['origin', 'protocol', 'host', 'hostname', 'port', 'pathname', 'hash'].forEach(function (key) {
-      if (urlLeft[key] != '' && urlRight[key] != '') {
+      if (urlLeft[key] || urlRight[key]) {
         result.push(buildResult("url", key, urlLeft[key], urlRight[key]));
       }
     });
