@@ -111,7 +111,7 @@ let doCompare = function (lurl, rurl) {
       result.push(buildResult("json", item, leftObj[item], rightObj[item]));
     });
   } else {
-    console.log("invalid comparison type, lefthand side");
+    console.log("invalid comparison type, lefthand side required");
     return false;
   }
 
@@ -161,6 +161,14 @@ tests.push({
   right: "https://www.example.com/something?first=param"
 });
 tests.push({
+  left: "",
+  right: "https://www.example.com/something?first=param"
+});
+tests.push({
+  left: "https://www.example.com/something/a?second=param",
+  right: ""
+});
+tests.push({
   left: {
     one: {
       two: {
@@ -191,6 +199,6 @@ tests.push({
 
 tests.forEach(function (test, idx) {
   idx++;
-  console.log("TEST #" + idx);
+  console.log("TEST #" + idx, test);
   console.table(doCompare(test.left, test.right));
 });
