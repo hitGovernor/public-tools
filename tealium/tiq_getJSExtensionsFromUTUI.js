@@ -1,7 +1,9 @@
+let profileOverride = [];
 utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
   let extensions = [];
   let results = { profiles: 0 }
 
+  profiles = (profileOverride.length > 0) ? profileOverride : profiles;
   profiles = profiles.sort();
   profiles.forEach(function (profile, idx) {
     utui.profile.getProfile(null, {
