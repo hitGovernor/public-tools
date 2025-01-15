@@ -27,38 +27,30 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
 
         let output = [];
         exts.forEach(function (item) {
-          if (item.extType == "Javascript Code") {
-            output.push({
-              profile: item.profile,
-              type: item.extType,
-              status: item.status,
-              uid: item._id,
-              title: item.title,
-              scope: item.advExecOption,
-              code: item.code
-            });
-          } else if (item.extType == "Advanced Javascript Code") {
-            let prodPromoted = "";
-            if (item?.codeDevData?.promotedSnippets) {
-              for (snippet in item.codeDevData.promotedSnippets) {
-                if (item.codeDevData.promotedSnippets[snippet].name === "prod") {
-                  prodPromoted = item.codeDevData.promotedSnippets[snippet].code;
+          let code = (function (asset) {
+            if (asset?.codeDevData?.promotedSnippets) {
+              for (snippet in asset.codeDevData.promotedSnippets) {
+                if (asset.codeDevData.promotedSnippets[snippet].name === "prod") {
+                  return asset.codeDevData.promotedSnippets[snippet].code;
                 }
-
               }
+            } else if (asset?.code) {
+              return asset.code;
+            } else {
+              return "";
             }
-            output.push({
-              profile: item.profile,
-              type: item.extType,
-              status: item.status,
-              uid: item._id,
-              title: item.title,
-              scope: item.advExecOption,
-              code: prodPromoted
-            });
-          }
-        });
+          })(item);
 
+          output.push({
+            profile: item.profile,
+            type: item.extType,
+            status: item.status,
+            uid: item._id,
+            title: item.title,
+            scope: item.advExecOption,
+            code: code
+          });
+        });
         console.log(output);
       }
     });
