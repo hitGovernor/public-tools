@@ -1,7 +1,7 @@
 let profileOverride = []; // if you want to specify pofiles, define here, otherwise leave empty array
 
-let formatForCSV = function(payload) {
-  let decodedCode = payload.replace(/&quot;/g, '"'); 
+let formatForCSV = function (payload) {
+  let decodedCode = payload.replace(/&quot;/g, '"');
   let escapedCode = decodedCode.replace(/"/g, '\\"').replace(/\n/g, '\\n')//.replace(/\t/g, '\\t');
   let quotedCode = `"${escapedCode}"`; // wrap the entire code block in double quotes
   return quotedCode;
@@ -31,9 +31,9 @@ let convertToCSV = function (assets) {
   // build the csv header row based on keys in first asset
   headers = Object.keys(assets[0]).join(",") + "\n";
 
-  // loop throug all assets to build the individual rows
-  for (let item in assets) {
-    let tmp = assets[item],
+  // loop through all assets to build the individual rows
+  for (let i = 0; i < assets.length; i++) {
+    let tmp = assets[i],
       tmpArray = [];
 
     for (let key in tmp) {
@@ -110,9 +110,9 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
             code: formatForCSV(code || "")
           });
         });
-        
+
         console.log(output);
-        download(convertToCSV(csvOutput),(utui.login.account || ""), "js-extensions");
+        download(convertToCSV(csvOutput), (utui.login.account || ""), "js-extensions");
       }
     });
   });
