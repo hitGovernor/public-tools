@@ -1,0 +1,83 @@
+let PROFILE_OVERRIDE = [];
+
+let csv = "profile,consent_type,category,doNotSell,tag_uid,tag_template,title,status,template_id";
+let output = [];
+
+let buildTableOutput = function (type, profileName, catName, catObj, tagObj) {
+  return ({
+    profile: profileName,
+    consent_type: type,
+    doNotSell: catObj.doNotSell,
+    category: catName,
+    tag_uid: catObj.id,
+    tag_template: catObj.tag_name,
+    title: tagObj.title || "",
+    status: tagObj.status || "",
+    template_id: tagObj.tag_id || ""
+  });
+}
+
+let buildCSVOutput = function (type, profileName, catName, catObj, tagObj) {
+  return [profileName, type, catName, catObj.doNotSell, catObj.id, catObj.tag_name, (tagObj.title || ""), (tagObj.status || ""), (tagObj.tag_id || "")].join(",");
+}
+
+utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
+  let PROFILES = (PROFILE_OVERRIDE.length > 0) ? PROFILE_OVERRIDE : profiles.sort();
+  let profileCount = 0;
+
+  PROFILES.forEach(function (profile, idx) {
+    idx++;
+    console.log("retrieve", idx, "of", PROFILES.length, "-", profile);
+
+    utui.profile.getProfile(null, {
+      r: "getProfile",
+      account: utui.login.account,
+      profile: profile
+    }, function (data) {
+      profileCount++;
+      console.log("XXXX:", data);
+      if (data.profile) {
+        if (data.privacy_management) {
+          let consentType = "";
+          let cats = {};
+          if (data?.privacy_management?.doNotSell?.isEnabled) {
+            cats = data.privacy_management.doNotSell.categories;
+            consentType = "ccpa";
+          } else if (data?.privacy_management?.preferences?.isEnabled) {
+            cats = data.privacy_management.preferences.categories;
+            consentType = "gdpr";
+          } else {
+            output.push(buildTableOutput('no doNotSell or preferences', data.profile, "", {}, {}))
+          }
+
+          Object.keys(cats).forEach(function (cat) {
+            if (cats[cat].tagid) {
+              Object.keys(cats[cat].tagid).forEach(function (item) {
+                let tagDetails = {};
+                // tagDetails = (cats[cat].tagid[item].id) ? data.manage[cats[cat].tagid[item].id] : {};
+                // if (cats[cat]?.tagid[item]?.id) {
+                //   tagDetails = (cats[cat].tagid[item].id);                  
+                // } else {
+                // console.log(cat, cats[cat]);
+                tagDetails = data?.manage[cats[cat]?.tagid[item]?.id] || {};
+                // }
+
+                if (tagDetails != undefined) {
+                  let tableOutput = buildTableOutput(consentType, data.profile, cat, cats[cat].tagid[item], tagDetails);
+                  output.push(tableOutput);
+
+                  let csvOutput = buildCSVOutput(consentType, data.profile, cat, cats[cat].tagid[item], tagDetails);
+                  csv += "\n" + csvOutput;
+                }
+              });
+            }
+          });
+
+        } else {
+          output.push(buildTableOutput('no privacy management', data.profile, "", {}, {}))
+        }
+      }
+      console.log("complete", profileCount, "of", PROFILES.length, "-", profile, "(" + idx + ")");
+    });
+  });
+});
