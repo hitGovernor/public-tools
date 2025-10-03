@@ -1,33 +1,5 @@
 let PROFILE_OVERRIDE = [
-  "brand-careers",
-  "brand-design",
-  "brand-i4e",
-  "brand-icom",
-  "cg-ttlc-ca",
-  "cg-turbotax-ca",
-  "corp-intranet",
-  "pcg",
-  "pcg-estore",
-  "privacy-test",
-  "privacy-util",
-  "sbseg-au",
-  "sbseg-br",
-  "sbseg-ca",
-  "sbseg-eu",
-  "sbseg-fr",
-  "sbseg-ics",
-  "sbseg-misc",
-  "sbseg-misc-lgpd",
-  "sbseg-mx",
-  "sbseg-qbdtipd",
-  "sbseg-qbop",
-  "sbseg-qbsep",
-  "sbseg-rw",
-  "sbseg-test",
-  "sbseg-uk",
-  "sbseg-us",
-  "sync-analytics",
-  "xintuit-ecomm"
+
 ];
 
 let csv = "profile,consent_type,category,doNotSell,tag_uid,tag_template,title,status,template_id";
