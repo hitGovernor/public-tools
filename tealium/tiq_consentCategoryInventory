@@ -1,6 +1,4 @@
-let PROFILE_OVERRIDE = [
-
-];
+let PROFILE_OVERRIDE = [];
 
 let csv = "profile,consent_type,category,doNotSell,tag_uid,tag_template,title,status,template_id";
 let output = [];
@@ -83,3 +81,22 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
     });
   });
 });
+
+
+// // the following can be run in the console after the main logic executes to
+// // output a copy/paste-able text block in the console. the output can be pasted
+// // into your favorite spreadsheet and split to columns ("," delimiter is used)
+// let tocopy = "profile,consent_type,category,tag_uid,tag_template,title,status,template_id\n";
+// for(item in output) {
+//     let tmp = [];
+//     tmp.push(output[item].profile || "");
+//     tmp.push(output[item].consent_type || "");
+//     tmp.push(output[item].category || "");
+//     tmp.push(output[item].tag_uid || "");
+//     tmp.push(output[item].tag_template || "");
+//     tmp.push(output[item].title || "");
+//     tmp.push(output[item].status || "");
+//     tmp.push(output[item].template_id || "");
+//     tocopy += tmp.join(",") + "\n";    
+// }
+// console.log(tocopy);
