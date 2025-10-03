@@ -2,6 +2,8 @@ let PROFILE_OVERRIDE = [];
 
 let csv = "profile,consent_type,category,doNotSell,tag_uid,tag_template,title,status,template_id";
 let output = [];
+let missingTitleTags = [];
+let missingStatusTags = []; // Track tags that still don't have status
 
 let buildTableOutput = function (type, profileName, catName, catObj, tagObj) {
   return ({
@@ -18,7 +20,18 @@ let buildTableOutput = function (type, profileName, catName, catObj, tagObj) {
 }
 
 let buildCSVOutput = function (type, profileName, catName, catObj, tagObj) {
-  return [profileName, type, catName, catObj.doNotSell, catObj.id, catObj.tag_name, (tagObj.title || ""), (tagObj.status || ""), (tagObj.tag_id || "")].join(",");
+  // Add quotes around fields that might contain commas
+  return [
+    `"${profileName}"`,
+    `"${type}"`,
+    `"${catName}"`,
+    `"${catObj.doNotSell || ""}"`,
+    `"${catObj.id || ""}"`,
+    `"${catObj.tag_name || ""}"`,
+    `"${tagObj.title || ""}"`,
+    `"${tagObj.status || ""}"`,
+    `"${tagObj.tag_id || ""}"`
+  ].join(",");
 }
 
 utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
@@ -35,7 +48,8 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
       profile: profile
     }, function (data) {
       profileCount++;
-      console.log("XXXX:", data);
+      console.log(`Processing profile: ${data.profile} (${Object.keys(data.manage || {}).length} tags available)`);
+
       if (data.profile) {
         if (data.privacy_management) {
           let consentType = "";
@@ -51,6 +65,7 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
           }
 
           Object.keys(cats).forEach(function (cat) {
+            // console.log(cat);
             if (cats[cat].tagid) {
               Object.keys(cats[cat].tagid).forEach(function (item) {
                 let tagDetails = {};
@@ -59,10 +74,196 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
                 //   tagDetails = (cats[cat].tagid[item].id);                  
                 // } else {
                 // console.log(cat, cats[cat]);
-                tagDetails = data?.manage[cats[cat]?.tagid[item]?.id] || {};
+                // Try multiple ways to get the tag ID and find the tag
+                let tagId = cats[cat]?.tagid[item]?.id || cats[cat]?.tagid[item]?.tag_id;
+                tagDetails = data?.manage[tagId] || {};
+
+                // If not found by direct lookup, search through all manage entries
+                if (!tagDetails.title && !tagDetails.tag_name) {
+                  let searchTagId = cats[cat]?.tagid[item]?.tag_id;
+                  let searchId = cats[cat]?.tagid[item]?.id;
+                  let searchTagName = cats[cat].tagid[item].tag_name;
+
+                  let potentialMatches = [];
+
+                  // Collect all potential matches
+                  Object.keys(data.manage || {}).forEach(function (manageKey) {
+                    let manageTag = data.manage[manageKey];
+                    if (manageTag && (
+                      manageTag.tag_id == searchTagId ||
+                      manageTag.id == searchId ||
+                      manageTag._id == searchId ||
+                      manageTag.tag_name === searchTagName
+                    )) {
+                      potentialMatches.push({
+                        key: manageKey,
+                        tag: manageTag,
+                        matchType: manageTag.id == searchId ? 'id' :
+                          manageTag._id == searchId ? '_id' :
+                            manageTag.tag_name === searchTagName ? 'tag_name' : 'tag_id'
+                      });
+                    }
+                  });
+
+                  // If we have multiple matches, export ALL of them as separate rows
+                  if (potentialMatches.length > 0) {
+                    // Log when we have multiple matches for debugging
+                    if (potentialMatches.length > 1) {
+                      console.log(`📋 Multiple tag instances found for "${searchTagName}" in category "${cat}":`,
+                        potentialMatches.map(m => `"${m.tag.title}" (key: ${m.key})`).join(', '));
+                    }
+
+                    // Process each match as a separate tag
+                    potentialMatches.forEach(function (match, matchIndex) {
+                      let matchTagDetails = match.tag;
+                      let matchTagId = match.key;
+
+                      // Apply fallback logic for this specific match
+                      let fallbackTitle = matchTagDetails.title;
+                      let fallbackStatus = matchTagDetails.status;
+                      let fallbackTagId = matchTagDetails.tag_id;
+
+                      // Approach 3: If we still don't have title, try using tag_name as fallback
+                      if (!fallbackTitle) {
+                        fallbackTitle = cats[cat].tagid[item].tag_name || "Unknown Tag";
+                      }
+
+                      // Approach 4: If we still don't have status, provide a default
+                      if (!fallbackStatus) {
+                        fallbackStatus = "unknown";
+                      }
+
+                      // Create final tag details for this match
+                      let finalTagDetails = {
+                        ...matchTagDetails,
+                        title: fallbackTitle,
+                        status: fallbackStatus,
+                        tag_id: fallbackTagId
+                      };
+
+                      // Track missing data
+                      if (!finalTagDetails.title || finalTagDetails.title === "Unknown Tag") {
+                        missingTitleTags.push({
+                          profile: data.profile,
+                          tagId: matchTagId,
+                          tagName: cats[cat].tagid[item].tag_name,
+                          category: cat,
+                          usedFallback: true
+                        });
+                      }
+
+                      if (!finalTagDetails.status || finalTagDetails.status === "unknown") {
+                        missingStatusTags.push({
+                          profile: data.profile,
+                          tagId: matchTagId,
+                          tagName: cats[cat].tagid[item].tag_name,
+                          category: cat,
+                          finalStatus: finalTagDetails.status,
+                          usedFallback: true
+                        });
+                      }
+
+                      // Export this tag instance
+                      let tableOutput = buildTableOutput(consentType, data.profile, cat, cats[cat].tagid[item], finalTagDetails);
+                      output.push(tableOutput);
+
+                      let csvOutput = buildCSVOutput(consentType, data.profile, cat, cats[cat].tagid[item], finalTagDetails);
+                      csv += "\n" + csvOutput;
+                    });
+
+                    // Skip the normal processing since we handled all matches above
+                    return;
+                  }
+                }
                 // }
 
+                // Track processing for summary
+                let processingInfo = {
+                  tagId: tagId,
+                  tagName: cats[cat].tagid[item].tag_name,
+                  foundInManage: !!tagDetails.title,
+                  needsFallback: false
+                };
+
+                // If tagDetails is empty or missing title/status, try alternative approaches
+                if (!tagDetails.title || !tagDetails.status) {
+                  processingInfo.needsFallback = true;
+
+                  // Try multiple fallback approaches
+                  let fallbackTitle = tagDetails.title;
+                  let fallbackStatus = tagDetails.status;
+                  let fallbackTagId = tagDetails.tag_id;
+
+                  // Approach 1: Check cats[cat].tagid[item] object
+                  fallbackTitle = fallbackTitle || cats[cat].tagid[item].title;
+                  fallbackStatus = fallbackStatus || cats[cat].tagid[item].status;
+                  fallbackTagId = fallbackTagId || cats[cat].tagid[item].tag_id;
+
+                  // Approach 2: Try different key variations in data.manage
+                  if ((!fallbackTitle || !fallbackStatus) && tagId) {
+                    let stringTagId = String(tagId);
+                    let altTagDetails = data?.manage[stringTagId];
+                    if (altTagDetails) {
+                      fallbackTitle = fallbackTitle || altTagDetails.title;
+                      fallbackStatus = fallbackStatus || altTagDetails.status;
+                      fallbackTagId = fallbackTagId || altTagDetails.tag_id;
+                    }
+
+                    // Try looking through all manage entries to find matching tag_id
+                    if (!fallbackTitle || !fallbackStatus) {
+                      Object.keys(data.manage || {}).forEach(function (manageKey) {
+                        let manageTag = data.manage[manageKey];
+                        if (manageTag && (manageTag.id == tagId || manageTag.tag_id == tagId || manageTag._id == tagId)) {
+                          fallbackTitle = fallbackTitle || manageTag.title;
+                          fallbackStatus = fallbackStatus || manageTag.status;
+                          fallbackTagId = fallbackTagId || manageTag.tag_id;
+                        }
+                      });
+                    }
+                  }
+
+                  // Approach 3: If we still don't have title, try using tag_name as fallback
+                  if (!fallbackTitle) {
+                    fallbackTitle = cats[cat].tagid[item].tag_name || "Unknown Tag";
+                  }
+
+                  // Approach 4: If we still don't have status, provide a default
+                  if (!fallbackStatus) {
+                    fallbackStatus = "unknown";
+                  }
+
+                  // Update tagDetails with fallback values
+                  tagDetails = {
+                    ...tagDetails,
+                    title: fallbackTitle,
+                    status: fallbackStatus,
+                    tag_id: fallbackTagId
+                  };
+                }
+
                 if (tagDetails != undefined) {
+                  // Track tags that still don't have titles or status
+                  if (!tagDetails.title || tagDetails.title === "Unknown Tag") {
+                    missingTitleTags.push({
+                      profile: data.profile,
+                      tagId: tagId,
+                      tagName: cats[cat].tagid[item].tag_name,
+                      category: cat,
+                      usedFallback: processingInfo.needsFallback
+                    });
+                  }
+
+                  if (!tagDetails.status || tagDetails.status === "unknown") {
+                    missingStatusTags.push({
+                      profile: data.profile,
+                      tagId: tagId,
+                      tagName: cats[cat].tagid[item].tag_name,
+                      category: cat,
+                      finalStatus: tagDetails.status,
+                      usedFallback: processingInfo.needsFallback
+                    });
+                  }
+
                   let tableOutput = buildTableOutput(consentType, data.profile, cat, cats[cat].tagid[item], tagDetails);
                   output.push(tableOutput);
 
@@ -76,27 +277,91 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
         } else {
           output.push(buildTableOutput('no privacy management', data.profile, "", {}, {}))
         }
+
+        // ALSO export ALL tags from data.manage (not just privacy-categorized ones)
+        if (data.manage) {
+          console.log(`Found ${Object.keys(data.manage).length} total tags in ${data.profile}, processing all...`);
+
+          Object.keys(data.manage).forEach(function (tagKey) {
+            let tag = data.manage[tagKey];
+            if (tag) {
+              // Check if this tag was already processed in privacy categories
+              let alreadyProcessed = output.some(function (existingTag) {
+                return existingTag.profile === data.profile &&
+                  (existingTag.tag_uid === tag.id ||
+                    existingTag.tag_uid === tag.tag_id ||
+                    existingTag.tag_uid === tagKey ||
+                    existingTag.title === tag.title ||
+                    existingTag.tag_template === tag.tag_name);
+              });
+
+              if (!alreadyProcessed) {
+                // Create a mock catObj for non-privacy tags
+                let mockCatObj = {
+                  id: tag.id || tag.tag_id || tagKey,
+                  tag_name: tag.tag_name || "Unknown",
+                  doNotSell: "not categorized"
+                };
+
+                let tableOutput = buildTableOutput('not categorized', data.profile, 'uncategorized', mockCatObj, tag);
+                output.push(tableOutput);
+
+                let csvOutput = buildCSVOutput('not categorized', data.profile, 'uncategorized', mockCatObj, tag);
+                csv += "\n" + csvOutput;
+              }
+            }
+          });
+        }
       }
-      console.log("complete", profileCount, "of", PROFILES.length, "-", profile, "(" + idx + ")");
+      //console.log("complete", profileCount, "of", PROFILES.length, "-", profile, "(" + idx + ")");
+
+      // Check if all profiles are processed
+      if (profileCount >= PROFILES.length) {
+        console.log("TEALIUM TAG AUDIT COMPLETE");
+
+        // Summary statistics
+        let summaryStats = {
+          "Total Profiles": PROFILES.length,
+          "Total Tags": output.length,
+          "Missing Titles": missingTitleTags.length,
+          "Missing Status": missingStatusTags.length,
+          "Title Success Rate": `${((output.length - missingTitleTags.length) / output.length * 100).toFixed(1)}%`,
+          "Status Success Rate": `${((output.length - missingStatusTags.length) / output.length * 100).toFixed(1)}%`
+        };
+
+        console.table(summaryStats);
+
+        // Show missing title details if any
+        if (missingTitleTags.length > 0) {
+          console.log("Tags with Missing Titles:");
+          console.table(missingTitleTags);
+        }
+
+        // Show missing status details if any
+        if (missingStatusTags.length > 0) {
+          console.log("Tags with Missing Status:");
+          console.table(missingStatusTags);
+        }
+
+        // Show sample of processed tags
+        if (output.length > 0) {
+          console.log("Sample of Processed Tags:");
+          console.table(output.slice(0, 5));
+        }
+
+        // Create download link for CSV
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `tealium_tag_audit_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+
+        console.log(`CSV file downloaded: tealium_tag_audit_${new Date().toISOString().slice(0, 10)}.csv`);
+      }
     });
   });
 });
-
-
-// // the following can be run in the console after the main logic executes to
-// // output a copy/paste-able text block in the console. the output can be pasted
-// // into your favorite spreadsheet and split to columns ("," delimiter is used)
-// let tocopy = "profile,consent_type,category,tag_uid,tag_template,title,status,template_id\n";
-// for(item in output) {
-//     let tmp = [];
-//     tmp.push(output[item].profile || "");
-//     tmp.push(output[item].consent_type || "");
-//     tmp.push(output[item].category || "");
-//     tmp.push(output[item].tag_uid || "");
-//     tmp.push(output[item].tag_template || "");
-//     tmp.push(output[item].title || "");
-//     tmp.push(output[item].status || "");
-//     tmp.push(output[item].template_id || "");
-//     tocopy += tmp.join(",") + "\n";    
-// }
-// console.log(tocopy);
