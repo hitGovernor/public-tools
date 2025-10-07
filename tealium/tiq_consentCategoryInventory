@@ -70,12 +70,12 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
                   if (cat.tagid[tag].id && cat.tagid[tag].id == tagInfo.uid) {
                     CONSENT_TAG_COUNT++;
                     tagInfo.category = cat.name;
-                    tagInfo.real_category = CAT_LOOKUP[cat.name] || "";
+                    tagInfo.real_category = CAT_LOOKUP[cat.name] || cat.name;
                     tagInfo.matchType = "TAG_ID";
                   } else if (!cat.tagid[tag].id && cat.tagid[tag].tag_id && cat.tagid[tag].tag_id == tagInfo.template_id) {
                     CONSENT_TAG_COUNT++;
                     tagInfo.category = cat.name;
-                    tagInfo.real_category = CAT_LOOKUP[cat.name] || "";
+                    tagInfo.real_category = CAT_LOOKUP[cat.name] || cat.name;
                     tagInfo.matchType = "TEMPLATE_ID";
                   }
                 }
