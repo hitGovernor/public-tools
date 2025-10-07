@@ -58,6 +58,9 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
             template_name: tmpTag.tag_name,
             tag_name: tmpTag.title,
             status: tmpTag.status,
+            category: "",
+            real_category: "",
+            matchType: "NO_MATCH"
           }
 
           if (consentType != "") {
@@ -69,13 +72,13 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
                 for (tag in cat.tagid) {
                   if (cat.tagid[tag].id && cat.tagid[tag].id == tagInfo.uid) {
                     CONSENT_TAG_COUNT++;
-                    tagInfo.category = cat.name;
-                    tagInfo.real_category = CAT_LOOKUP[cat.name] || cat.name;
+                    tagInfo.category = cat.name || "";
+                    tagInfo.real_category = CAT_LOOKUP[cat.name] || cat.name || "";
                     tagInfo.matchType = "TAG_ID";
                   } else if (!cat.tagid[tag].id && cat.tagid[tag].tag_id && cat.tagid[tag].tag_id == tagInfo.template_id) {
                     CONSENT_TAG_COUNT++;
-                    tagInfo.category = cat.name;
-                    tagInfo.real_category = CAT_LOOKUP[cat.name] || cat.name;
+                    tagInfo.category = cat.name || "";
+                    tagInfo.real_category = CAT_LOOKUP[cat.name] || cat.name || "";
                     tagInfo.matchType = "TEMPLATE_ID";
                   }
                 }
@@ -122,7 +125,7 @@ utui.automator.getAllProfiles(utui.login.account).then(function (profiles) {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `tealium_tag_audit_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `tealium_tag_audit_${utui.login.account}_consolidated_${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
