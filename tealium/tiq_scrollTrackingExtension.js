@@ -16,6 +16,7 @@ window.addEventListener("scroll", function (event) {
       percentageObj[currentMilestone] = true;
 
       // log and track the milestone
+      // to use with other TMS or stand-alone, replace utag references with appropriate methods
       utag.DB("scrolled past - " + currentMilestone.toString() + "%");
       utag.link({
         "tealium_event": "scroll",
