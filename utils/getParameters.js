@@ -7,11 +7,17 @@
  * - Defaults to window.location.search if no searchString is provided.
  *
  * @param {string | string[]} name The parameter name(s) to find.
- * @param {string} [searchString=window.location.search] The string to search within.
+ * @param {string} [searchString=window?.location?.search] The string to search within.
  * @returns {string | null | Object<string, string | null>} The result.
  */
-let getParameters = function(name, searchString = window.location.search) {
-  const paramSource = (searchString && !searchString.startsWith("?")) ? "?" + searchString : searchString;
+let getParameters = function (name, searchString = window?.location?.search) {
+  let paramSource = searchString;
+  try { // Attempt to create a new URL object from the string, return params if successful
+    const testUrl = new URL(searchString);
+    paramSource = testUrl.search;
+  } catch (e) { // If an error is caught (specifically TypeError), it's not a valid URL.
+    paramSource = (paramSource && !paramSource.startsWith("?")) ? "?" + paramSource : paramSource;
+  }
 
   const params = new URLSearchParams(paramSource);
 
@@ -53,12 +59,14 @@ let getParameters = function(name, searchString = window.location.search) {
 let tests = [];
 tests.push({ "param": "test", "search": "test=test" });
 tests.push({ "param": "test", "search": "" });
+tests.push({ "param": "test"});
 tests.push({ "param": "test", "search": "test=test&next=next" });
 tests.push({ "param": "doesnotexist", "search": "test=test&next=next" });
 tests.push({ "param": ["test"], "search": "test=test&next=next" });
 tests.push({ "param": ["test"], "search": "" });
 tests.push({ "param": ["test", "next"], "search": "test=test&next=next" });
 tests.push({ "param": ["doesnotexist"], "search": "test=test&next=next" });
+tests.push({ "param": "q", "search": "https://site/path?q=a%20b&x=1" });
 
 tests.forEach(function (test, idx) {
   console.log(idx, JSON.stringify(test), getParameters(test.param, test.search));
