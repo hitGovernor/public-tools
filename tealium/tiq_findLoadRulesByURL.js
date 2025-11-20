@@ -1,4 +1,5 @@
 let PROFILE_OVERRIDE = ["ENTER-A-SINGLE-PROFILE-ID-HERE-AS-AN-ARRAY"];
+let LOG_FULL_DETAIL = true;
 let testURLs = [
   "https://call-compare.pages.dev/",
 ];
@@ -38,11 +39,9 @@ function isUrlRelated(inputKey) {
  * including case-insensitive, negative, and populated checks.
  */
 function checkCondition(value, operator, filter) {
-    // Treat empty value (for dom.domain/pathname) as "not populated"
     const val = String(value || '');
     const flt = String(filter || '');
     
-    // Helper for case-insensitive comparison
     const valLower = val.toLowerCase();
     const fltLower = flt.toLowerCase();
 
@@ -59,7 +58,6 @@ function checkCondition(value, operator, filter) {
         
         case 'regular_expression':
             try {
-                // Handle patterns like /pattern/flags
                 const match = flt.match(/^\/(.+)\/([gimyus]*)$/);
                 const regex = match ? new RegExp(match[1], match[2]) : new RegExp(flt);
                 return regex.test(val);
@@ -79,33 +77,21 @@ function checkCondition(value, operator, filter) {
         
         // --- State Checks (for URL parts) ---
         case 'populated': 
-            // For dom.domain or dom.pathname, check if the string is non-empty
             return val.length > 0; 
             
-        case 'not_populated':
-            return val.length === 0;
-
         default: 
-            // Unhandled operators for URL (e.g., 'defined', 'undefined', numeric operators)
             return false;
     }
 }
 
 
-// --- Main Function (Updated Logic) ---
+// --- Main Function (Updated to Output All Criteria) ---
 
-/**
- * Parses a full URL and checks it against a set of rules, returning detailed
- * information about Exact and Partial matches.
- * @param {string} urlString The full URL to check.
- */
-function findMatchingRules(urlString) {
+function findMatchingRules(urlString, logFullDetail = false) {
     let url;
     try {
         url = new URL(urlString);
     } catch (e) {
-        // For invalid URLs, we can still try to derive domain/pathname if possible, 
-        // but for safety, we'll just log and return.
         console.group(`Checking URL: ${urlString}`);
         console.log(`❌ INVALID URL provided.`);
         console.groupEnd();
@@ -136,93 +122,86 @@ function findMatchingRules(urlString) {
         let urlConditionPasses = false; 
         let hasNonUrlFilters = false;
         const nonUrlCriteria = [];
+        const urlMatchCriteria = []; 
 
-        // If the rule has no filtering criteria, do nothing (Requirement 4 check, though unlikely with data structure)
         if (conditionBlocks.length === 0) continue;
 
         // Evaluate each condition block ('0', '1', '2'...) using OR logic
         for (const condition of conditionBlocks) {
 
+            let blockHadUrlFilter = false;
+            
             // Helper function to evaluate a single input (input_x)
             const evaluateInput = (inputKey, operator, filter) => {
-                // Filter and operator are optional only if inputKey is missing.
                 if (!inputKey) return { isUrl: false, isMatch: true, criteria: null };
 
                 const isUrl = isUrlRelated(inputKey);
 
                 if (isUrl) {
                     hasUrlFilters = true;
+                    blockHadUrlFilter = true;
                     const valueToMatch = urlParts[inputKey];
-                    // Check against the actual criteria.
                     const isMatch = checkCondition(valueToMatch, operator, filter);
+                    
+                    if (isMatch) {
+                        // Capture the successful URL filter for output review
+                        urlMatchCriteria.push(`"${inputKey}" ${operator.replace(/_/g, ' ')} "${filter}"`);
+                    }
                     return { isUrl: true, isMatch, criteria: null };
                 } else {
                     hasNonUrlFilters = true;
-                    // Record the full criteria string for the partial match output.
                     const criteriaString = `"${inputKey}" ${operator.replace(/_/g, ' ')} "${filter}"`;
                     nonUrlCriteria.push(criteriaString);
-
-                    // Since we cannot evaluate non-URL conditions, we assume TRUE for the
-                    // purpose of determining if the URL *could* be a match (Partial Match).
-                    // This prevents a single non-URL filter from immediately ruling out a valid URL match.
+                    // Assume non-URL condition passes for partial match check
                     return { isUrl: false, isMatch: true, criteria: criteriaString };
                 }
             };
 
-            // Rule conditions typically use AND logic across the inputs (e.g., input_0 AND input_1 AND input_2...)
-            
             // Collect all inputs from condition object (up to input_7)
-            const results = [];
+            const resultsInBlock = [];
             for (let i = 0; i < 8; i++) {
                 const inputKey = condition[`input_${i}`];
                 const operator = condition[`operator_${i}`];
                 const filter = condition[`filter_${i}`];
                 
                 if (inputKey) {
-                    results.push(evaluateInput(inputKey, operator, filter));
+                    resultsInBlock.push(evaluateInput(inputKey, operator, filter));
                 }
             }
 
-            // Check if ALL parts of this specific condition block passed
-            const conditionBlockPassed = results.every(r => r.isMatch);
-            
-            // Check if ANY part of this specific condition block was URL related
-            const blockHadUrlFilter = results.some(r => r.isUrl);
+            // Check if ALL parts of this specific condition block passed (AND logic)
+            const conditionBlockPassed = resultsInBlock.every(r => r.isMatch);
 
-            // The main OR logic: if this block passed AND contained a URL filter, the rule qualifies for a match.
+            // If this block passed AND contained a URL filter, the rule qualifies for a match (OR logic).
             if (conditionBlockPassed && blockHadUrlFilter) {
-                urlConditionPasses = true; // This rule qualifies as a match.
-                // We don't break yet because we need to collect ALL non-URL criteria from ALL matching blocks.
+                urlConditionPasses = true;
             }
         }
 
         // --- Final Match Determination ---
         
-        // Requirement 4: If the rule has no URL-specific filtering criteria, do nothing.
-        if (!hasUrlFilters) continue;
+        if (!hasUrlFilters) continue; // Requirement 4: No URL filters.
+        if (!urlConditionPasses) continue; // Requirement 1: URL failed to match.
 
-        // Requirement 1: If the URL does not match any filters in the rule, do nothing.
-        if (!urlConditionPasses) continue;
-
-        // At this point, the URL MATCHES at least one filter.
         const output = {
             id: rule.id,
             title: rule.title,
             status: rule.status,
             matchType: '',
+            urlCriteria: [],
             nonUrlCriteria: []
         };
 
-        // Clean up the nonUrlCriteria list, removing duplicates
-        const uniqueNonUrlCriteria = [...new Set(nonUrlCriteria)];
+        // Clean up criteria lists (remove duplicates)
+        output.urlCriteria = [...new Set(urlMatchCriteria)].filter(c => c !== null);
+        output.nonUrlCriteria = [...new Set(nonUrlCriteria)].filter(c => c !== null);
 
         if (hasNonUrlFilters) {
-            // Requirement 3: URL matches, AND other requirements exist (Partial Match)
+            // Requirement 3: Partial Match
             output.matchType = '⚠️ PARTIAL MATCH (Non-URL Criteria Exist)';
-            output.nonUrlCriteria = uniqueNonUrlCriteria;
             results.push(output);
         } else {
-            // Requirement 2: URL matches, AND no other requirements exist (Exact Match)
+            // Requirement 2: EXACT MATCH (URL ONLY) - Includes criteria as requested
             output.matchType = '✅ EXACT MATCH (URL ONLY)';
             results.push(output);
         }
@@ -233,19 +212,27 @@ function findMatchingRules(urlString) {
         console.log("❌ NO MATCHES found for the provided URL.");
     } else {
         results.forEach(result => {
-            console.log(`${result.matchType} -- UID: ${result.id}, Title: ${result.title}, Rule Status: ${result.status}`);
-            if (result.nonUrlCriteria.length > 0) {
+            console.log(`${result.matchType} -- UID: **${result.id}**, Title: **${result.title}**, Status: ${result.status}`);
+            
+            // Output URL criteria for review (applies to both EXACT and PARTIAL)
+            if (result.urlCriteria && result.urlCriteria.length > 0 && logFullDetail) {
+                console.log(`**Matched URL Criteria:**\n* ${result.urlCriteria.join('\n* ')}`);
+            }
+            
+            // Output Non-URL criteria (for partial matches)
+            if (result.nonUrlCriteria && result.nonUrlCriteria.length > 0) {
                 console.log(`**Additional Criteria Needed:**\n* ${result.nonUrlCriteria.join('\n* ')}`);
             }
         });
     }
     console.groupEnd();
 }
+
 let waitForRules = setInterval(function () {
   if (window.ruleDefinitions) {
     clearInterval(waitForRules);
     testURLs.forEach(function (test) {
-      findMatchingRules(test);
+      findMatchingRules(test, LOG_FULL_DETAIL);
     });
   }
 }, 100);
