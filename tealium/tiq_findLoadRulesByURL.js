@@ -198,11 +198,13 @@ function findMatchingRules(urlString, logFullDetail = false) {
 
         if (hasNonUrlFilters) {
             // Requirement 3: Partial Match
-            output.matchType = '⚠️ PARTIAL MATCH (Non-URL Criteria Exist)';
+            // output.matchType = '⚠️ PARTIAL MATCH (Non-URL Criteria Exist)';
+            output.matchType = '⚠️ PARTIAL MATCH';
             results.push(output);
         } else {
             // Requirement 2: EXACT MATCH (URL ONLY) - Includes criteria as requested
-            output.matchType = '✅ EXACT MATCH (URL ONLY)';
+            // output.matchType = '✅ EXACT MATCH (URL ONLY)';
+            output.matchType = '✅ EXACT MATCH';
             results.push(output);
         }
     }
@@ -212,16 +214,21 @@ function findMatchingRules(urlString, logFullDetail = false) {
         console.log("❌ NO MATCHES found for the provided URL.");
     } else {
         results.forEach(result => {
-            console.groupCollapsed(`${result.matchType} -- UID: ${result.id}, Title: ${result.title}, Status: ${result.status}`);
-            
+            // console.groupCollapsed(`${result.matchType} -- UID: ${result.id}, Title: ${result.title}, Status: ${result.status}`);
+            console.groupCollapsed(`${result.matchType} -- ${result.title} (UID: ${result.id})`);
+
+            if(result.status == "inactive") {
+              console.log("❌ Rule is inactive.");
+            }
+          
             // Output URL criteria for review (applies to both EXACT and PARTIAL)
             if (result.urlCriteria && result.urlCriteria.length > 0 && logFullDetail) {
-                console.log(`**Matched URL Criteria:**\n* ${result.urlCriteria.join('\n* ')}`);
+                console.log(`** Matched URL Criteria: \n* ${result.urlCriteria.join('\n* ')}`);
             }
             
             // Output Non-URL criteria (for partial matches)
             if (result.nonUrlCriteria && result.nonUrlCriteria.length > 0) {
-                console.log(`**Additional Criteria Needed:**\n* ${result.nonUrlCriteria.join('\n* ')}`);
+                console.log(`** Additional Criteria Needed: \n* ${result.nonUrlCriteria.join('\n* ')}`);
             }
             console.groupEnd();
         });
