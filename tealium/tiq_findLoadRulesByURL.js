@@ -212,7 +212,7 @@ function findMatchingRules(urlString, logFullDetail = false) {
         console.log("❌ NO MATCHES found for the provided URL.");
     } else {
         results.forEach(result => {
-            console.log(`${result.matchType} -- UID: **${result.id}**, Title: **${result.title}**, Status: ${result.status}`);
+            console.groupCollapsed(`${result.matchType} -- UID: ${result.id}, Title: ${result.title}, Status: ${result.status}`);
             
             // Output URL criteria for review (applies to both EXACT and PARTIAL)
             if (result.urlCriteria && result.urlCriteria.length > 0 && logFullDetail) {
@@ -223,6 +223,7 @@ function findMatchingRules(urlString, logFullDetail = false) {
             if (result.nonUrlCriteria && result.nonUrlCriteria.length > 0) {
                 console.log(`**Additional Criteria Needed:**\n* ${result.nonUrlCriteria.join('\n* ')}`);
             }
+            console.groupEnd();
         });
     }
     console.groupEnd();
